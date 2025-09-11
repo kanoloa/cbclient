@@ -1,16 +1,8 @@
 
-// import {ProjectReference} from "./types/codebeamer";
+import * as types from "./types/index.ts";
 
-import {ProjectReference, TrackerItemReferenceSearchResult} from "./types/codebeamer.d.ts";
+function setHeaders(cb: types.cbinit) {
 
-export interface cbinit {
-  username: string | undefined,
-  password: string | undefined,
-  serverUrl: string | undefined,
-  proxyUrl: string | undefined
-}
-
-function setHeaders(cb: cbinit) {
   const headers = new Headers();
   if (cb.username && cb.password) {
     headers.append("Accept", "application/json");
@@ -23,7 +15,7 @@ function setHeaders(cb: cbinit) {
   return headers;
 }
 
-async function doFetch(target: string, cb: cbinit) {
+async function doFetch(target: string, cb: types.cbinit) {
   const headers: Headers = setHeaders(cb);
   return await fetch(target, {headers: headers})
       .then((response: Response) => {
@@ -38,10 +30,18 @@ async function doFetch(target: string, cb: cbinit) {
  * Get a list of Codebeamer projects that the user can access to.
  * @param cb cbinit interface
  * @return ProjectReference
-  */
-export function getProjects(cb: cbinit) : Promise<ProjectReference[]> {
+ */
+export async function getProjects(cb: types.cbinit) {
   const target = cb.serverUrl + "/projects";
-  return doFetch(target, cb);
+  return await doFetch(target, cb);
+}
+
+/**
+ * Type guard for getProject() function.
+ * @param obj
+ */
+export function getProjects_success(obj: unknown): obj is types.ProjectReference {
+  return(Array.isArray(obj) && obj.length > 0);
 }
 
 /**
@@ -50,8 +50,46 @@ export function getProjects(cb: cbinit) : Promise<ProjectReference[]> {
  * @param trackerId tracker ID.
  * @return TrackerItemReferenceSearchResult
  */
-export function getTrackerItems(cb: cbinit, trackerId: number): Promise<TrackerItemReferenceSearchResult> {
+export async function getTrackerItems(cb: types.cbinit, trackerId: number) {
   // if (! cb || ! trackerId) return;
   const target = cb.serverUrl + "/trackers/" + trackerId + "/items";
-  return doFetch(target, cb);
+  return await doFetch(target, cb);
+}
+
+/**
+ * Type guard for getTrackerItems() function.
+ * @param obj
+ */
+export function getTrackerItems_success(obj: unknown) : obj is types.TrackerItemReferenceSearchResult {
+    // console.log(JSON.stringify(obj));
+    return(
+      typeof obj === 'object' &&
+          obj != null &&
+          'total' in obj &&
+          'itemRefs' in obj &&
+          Array.isArray(obj.itemRefs) && obj.itemRefs.length > 0
+  )
+}
+
+/**
+ * Query items using cBQL.
+ * @param cb
+ * @param query
+ * @param page start page
+ * @param pageSize how many items should be included in the response.
+ */
+
+export async function queryItems(cb: types.cbinit, query: string, page: number = 1, pageSize: number = 100) {
+    const target = cb.serverUrl + "/items/query?page=" + page + "&pageSize=" + pageSize + "&queryString=" + encodeURI(query);
+    return await doFetch(target, cb);
+}
+
+export function queryItems_success(obj: unknown) : obj is types.TrackerItemSearchResult {
+    return(
+        typeof obj === 'object' &&
+            obj != null &&
+            'total' in obj &&
+            'items' in obj &&
+            Array.isArray(obj.items) && obj.items.length > 0
+    )
 }

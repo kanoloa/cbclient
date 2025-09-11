@@ -1,32 +1,70 @@
-import { assertNotEquals } from "@std/assert";
-import {cbinit, getProjects, getTrackerItems} from "./main.ts";
-import {ProjectReference, TrackerItemReferenceSearchResult} from "./types/codebeamer.d.ts";
+import { assertEquals} from "@std/assert";
+import {
+  getProjects,
+  getTrackerItems,
+  getProjects_success,
+  getTrackerItems_success,
+  queryItems,
+  queryItems_success
+} from "./main.ts";
+import * as types from "./types/index.ts";
+import {AbstractFieldValue} from "./types/index.ts";
 
+const cb: types.cbinit = {} as types.cbinit;
+cb.username = Deno.env.get("USERNAME");
+cb.password = Deno.env.get("PASSWORD");
+cb.serverUrl = Deno.env.get("SERVER_URL");
 
-Deno.test(async function getProjectTest() {
-  const cb: cbinit = {} as cbinit;
-  cb.username = Deno.env.get("USERNAME");
-  cb.password = Deno.env.get("PASSWORD");
-  cb.serverUrl = Deno.env.get("SERVER_URL");
-  // console.log("test: from env: username: " + cb.username);
-  //console.log("test: from env: password: " + cb.password);
-  //console.log("test: from env: server  : " + cb.serverUrl);
-  //console.log("test: from env: proxy   : " + Deno.env.get("HTTPS_PROXY"));
-
-  const res: Array<ProjectReference> = await getProjects(cb);
-  // console.log(JSON.stringify(res, null, 2));
-  // console.log("\n" + "test: there are " + res.length + " projects." + "\n");
-  assertNotEquals(res.length, 0);
+Deno.test(async function getProjectsTest() {
+  const res: Array<types.ProjectReference> = await getProjects(cb);
+  assertEquals(getProjects_success(res), true);
 })
 
-Deno.test(async function getTrackerItemTest() {
-  const cb: cbinit = {} as cbinit;
-  cb.username = Deno.env.get("USERNAME");
-  cb.password = Deno.env.get("PASSWORD");
-  cb.serverUrl = Deno.env.get("SERVER_URL");
-  const res: TrackerItemReferenceSearchResult = await getTrackerItems(cb, 6545508);
-  // console.log("\n" + "Items in tracker 6545508 is "  + res.total + "\n")
-  assertNotEquals(res.total, 0);
+Deno.test(async function getTrackerItemsTest() {
+  // const cb: types.cbinit = {} as types.cbinit;
+  const res: types.TrackerItemReferenceSearchResult = await getTrackerItems(cb, 6545508);
+  assertEquals(getTrackerItems_success(res), true);
+})
+
+Deno.test(async function getTrackerItemsTest_2() {
+  // const cb: types.cbinit = {} as types.cbinit;
+  const res = await getTrackerItems(cb, 999999);  // not exist
+  assertEquals(getTrackerItems_success(res), false);
+})
+
+Deno.test(async function queryItemsTest() {
+  const query = "project.id IN (363) AND tracker.id IN (6545508)";
+  const res: types.TrackerItemSearchResult = await queryItems(cb, query, 1,100);
+  // console.log("queried items: " + JSON.stringify(res, null, 2));
+  if (queryItems_success(res)) {
+    if (res.items != null) {
+      console.log("page = " + res.page + ", count = " + res.items.length);
+      let cnt = 1;
+      res.items.forEach((item) => {
+        let str = "line = " + cnt + ", item id = " + item.id;
+        if (item.customFields && item.customFields.length > 0) {
+          const cf: AbstractFieldValue[] = item.customFields;
+          cf.forEach((field: AbstractFieldValue) => {
+            switch (field.name) {
+              case('CCPM Task Level'):
+                str = str + ", level = " + field.value;
+                break;
+              case ('CCPM Task Code'):
+                str = str + ", code = " + field.value;
+                break;
+              case ('CCPM Task Started'):
+                str = str + ", started? = " + field.value;
+                break;
+            }
+          })
+        }
+        str += ', name = ' + item.name;
+        console.log(str);
+        cnt++;
+      })
+    }
+  }
+  assertEquals(queryItems_success(res), true);
 })
 
 
