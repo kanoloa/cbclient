@@ -6,7 +6,7 @@ import {
   getTrackerItems_success,
   queryItems,
   queryItems_success
-} from "./main.ts";
+} from "./mod.ts";
 import * as types from "./types/index.ts";
 import {AbstractFieldValue} from "./types/index.ts";
 

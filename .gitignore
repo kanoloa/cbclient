@@ -45,7 +45,7 @@ jspm_packages/
 web_modules/
 
 # TypeScript cache
-*.tsbuildinfo
+*mod.tsbuildinfo
 
 # Optional npm cache directory
 .npm
@@ -93,7 +93,6 @@ dist
 
 # vuepress v2.x temp and cache directory
 .temp
-.cache
 
 # Sveltekit cache directory
 .svelte-kit/
