@@ -8,6 +8,5 @@ export type TrackerItemSearchResult = components["schemas"]["TrackerItemSearchRe
 
 export type AbstractFieldValue = components["schemas"]["AbstractFieldValue"] &  {
     value?: string | boolean | number,
-    // values?: {[key: string]: string}[]
     values?: components["schemas"]["AbstractReference"][]
 };

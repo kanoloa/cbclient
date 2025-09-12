@@ -1,3 +1,47 @@
+/**
+ * Codebeamer client utility written in TypeScript.
+ *
+ * # Examples
+ * @example instantiate Codebeamer client.
+ * ```ts
+ * import * as types from ./types/index.ts
+ * import * as cbclient from ./mod.ts
+  * ```
+ * @example get a list of project.
+ * ```ts
+ * const res = await cbclient.getProjects(cb: types.cbinit)
+ * if (cbclient.getProject_success(res)) {
+ *   do_something
+ * }
+ * ```
+ *
+ * Each function has corresponding type guard function whose name is <functionName>_success.
+ * Most of the function returns Promise<any>, use type guard function to check if the response is a type of
+ * what you need.
+ *
+ * # Environment file
+ * To connect to Codebeamer via open-api (aka Swagger v3), you need to be authenticated and authorized by
+ * the Codebeamer server you are accessing to. To provide username and password to this utility, you need to
+ * create .env file at the same directory where this utility resides.
+ *
+ * in the .env file, there must be 3 lines like below:
+ * ```ts
+ * USERNAME=tom # user username here.
+ * PASSWORD=cat # password here.
+ * SERVERURL # endpoint URL of Codebeamer open-api with [schema]:[server]:[port]:[path]
+ * ```
+ * SERVERURL may seem to be something like 'https://my.codebeamer.com:443/cb/api/v3'
+ * YOU SHOULD NOT ADD TRAILING SLASH '/' AT THE END OF SERVERURL.
+ *
+ * # Proxy Access
+ * When you need to connect Codebeamer server via a proxy server, then you have to set HTTP_PROXY and
+ * HTTPS_PROXY environment variables.  These variables can not be set in .env file.
+ *
+ * [!IMPORTANT]
+ * PTC does not support this program. Use this on your own responsibilities.
+ *
+ */
+
 
 import * as types from "./types/index.ts";
 
@@ -15,9 +59,9 @@ function setHeaders(cb: types.cbinit) {
   return headers;
 }
 
-async function doFetch(target: string, cb: types.cbinit) {
+async function doFetch(target: string, cb: types.cbinit, method: string = 'GET') {
   const headers: Headers = setHeaders(cb);
-  return await fetch(target, {headers: headers})
+  return await fetch(target, {method: method, headers: headers})
       .then((response: Response) => {
         return response.json();
       })
@@ -29,7 +73,7 @@ async function doFetch(target: string, cb: types.cbinit) {
 /**
  * Get a list of Codebeamer projects that the user can access to.
  * @param cb cbinit interface
- * @return ProjectReference
+ * @return Promise<any>
  */
 export async function getProjects(cb: types.cbinit) {
   const target = cb.serverUrl + "/projects";
@@ -37,8 +81,9 @@ export async function getProjects(cb: types.cbinit) {
 }
 
 /**
- * Type guard for getProject() function.
+ * Type guard for getProject() function. Expected type is ProjectReference.
  * @param obj
+ * @return boolean
  */
 export function getProjects_success(obj: unknown): obj is types.ProjectReference {
   return(Array.isArray(obj) && obj.length > 0);
@@ -48,7 +93,7 @@ export function getProjects_success(obj: unknown): obj is types.ProjectReference
  * Get a list of items that the tracker specified by parameter holds.
  * @param cb cbinit interface
  * @param trackerId tracker ID.
- * @return TrackerItemReferenceSearchResult
+ * @return Promise<any>
  */
 export async function getTrackerItems(cb: types.cbinit, trackerId: number) {
   // if (! cb || ! trackerId) return;
@@ -57,8 +102,9 @@ export async function getTrackerItems(cb: types.cbinit, trackerId: number) {
 }
 
 /**
- * Type guard for getTrackerItems() function.
+ * Type guard for getTrackerItems() function. Expected type is TrackerItemReferenceSearchResult.
  * @param obj
+ * @return boolean
  */
 export function getTrackerItems_success(obj: unknown) : obj is types.TrackerItemReferenceSearchResult {
     // console.log(JSON.stringify(obj));
@@ -73,12 +119,14 @@ export function getTrackerItems_success(obj: unknown) : obj is types.TrackerItem
 
 /**
  * Query items using cBQL.
- * query for items usually divided into small chunks (500 items at maximum).
- * This function aggregates chunks into single response.
+ * A result of query may be divided into small chunks.  Chunk size is set to 100 by default, and could be increase
+ * up to 500. When the number of items exceeds the chunk size, Codebeamer generates paginated results.
+ * This function aggregates these chunks into single response.
  * @param cb type cbinit
  * @param query query string
  * @param page start page
  * @param pageSize how many items should be included in the response.
+ * @return Promise<any>
  */
 export async function queryItems(cb: types.cbinit, query: string, page: number = 1, pageSize: number = 100) {
 
@@ -87,7 +135,7 @@ export async function queryItems(cb: types.cbinit, query: string, page: number =
     const res: types.TrackerItemSearchResult = {total: 0, page: 0, pageSize: 0, items: []};
     let target = cb.serverUrl + "/items/query?page=" + page + "&pageSize=" + pageSize + "&queryString=" + encodeURI(query);
 
-    let cnt = 0;
+    let counter = 0;
 
     /* get all the chunks and aggregate them into single response. */
     do {
@@ -116,7 +164,7 @@ export async function queryItems(cb: types.cbinit, query: string, page: number =
             }
         }
 
-        /* when array exists, then process each of them */
+        /* when an array for items exists, then process each of them */
         if (chunk.items != null && Array.isArray(chunk.items)) {
 
             /* no more data to read. exiting */
@@ -128,12 +176,12 @@ export async function queryItems(cb: types.cbinit, query: string, page: number =
             /* calculate number of items that have been read. */
             current = current + chunk.items.length;
 
-            if (cnt === 0 ){
+            if (counter === 0 ) {
                 res.total = chunk.total;
                 res.page = chunk.page;
                 res.pageSize = chunk.pageSize;
             }
-            cnt++;
+            counter++;
 
             if (res.items == null) {
                 res.items = [];
@@ -149,6 +197,11 @@ export async function queryItems(cb: types.cbinit, query: string, page: number =
      return res;
 }
 
+/**
+ * Type guard for queryItems function. Expected type is TrackerItemSearchResult.
+ * @param obj
+ * @return boolean
+ */
 export function queryItems_success(obj: unknown) : obj is types.TrackerItemSearchResult {
     return(
         typeof obj === 'object' &&
