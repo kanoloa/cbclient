@@ -51,19 +51,19 @@
  * PTC does not support this program. Use this on your own responsibilities.
  *
  * 'No' copy rights reserved, 2025, Ats Yamada (kanoloa).
- *
  */
-
 
 import * as types from "./types/index.ts";
 
 function setHeaders(cb: types.cbinit) {
-
   const headers = new Headers();
   if (cb.username && cb.password) {
     headers.append("Accept", "application/json");
     headers.append("Content-Type", "application/json");
-    headers.append('Authorization', 'Basic ' + btoa(`${cb.username}:${cb.password}`));
+    headers.append(
+      "Authorization",
+      "Basic " + btoa(`${cb.username}:${cb.password}`),
+    );
     // console.log("setHeaders: Authorization: " + headers.get("Authorization"));
   } else {
     console.log("setHeaders: immature server information.");
@@ -71,22 +71,26 @@ function setHeaders(cb: types.cbinit) {
   return headers;
 }
 
-async function doFetch(target: string, cb: types.cbinit, method: string = 'GET', body?: unknown) {
+async function doFetch(
+  target: string,
+  cb: types.cbinit,
+  method: string = "GET",
+  body?: unknown,
+) {
   const headers: Headers = setHeaders(cb);
-  if (body == null || (body === 'GET')) {
-      return await fetch(target, {
-          method: method,
-          headers: headers,
-          body: (body != null ? JSON.stringify(body) : undefined)}
-      )
-      .then((response: Response) => {
-          return response.json();
-      })
-      .then((jsonData) => {
-          return jsonData;
-      })
-  }
-
+  // console.log("doFetch(): method = " + method);
+  // console.log("doFetch(): body = " + JSON.stringify(body));
+  return await fetch(target, {
+    method: method,
+    headers: headers,
+    body: (body != null ? JSON.stringify(body) : undefined),
+  })
+    .then((response: Response) => {
+      return response.json();
+    })
+    .then((jsonData) => {
+      return jsonData;
+    });
 }
 
 /**
@@ -104,8 +108,10 @@ export async function getProjects(cb: types.cbinit) {
  * @param obj
  * @return boolean
  */
-export function getProjects_success(obj: unknown): obj is types.ProjectReference {
-  return(Array.isArray(obj) && obj.length > 0);
+export function getProjects_success(
+  obj: unknown,
+): obj is types.ProjectReference {
+  return (Array.isArray(obj) && obj.length > 0);
 }
 
 /**
@@ -124,15 +130,17 @@ export async function getTrackerItems(cb: types.cbinit, trackerId: number) {
  * @param obj
  * @return boolean
  */
-export function getTrackerItems_success(obj: unknown) : obj is types.TrackerItemReferenceSearchResult {
-    // console.log(JSON.stringify(obj));
-    return(
-      typeof obj === 'object' &&
-          obj != null &&
-          'total' in obj &&
-          'itemRefs' in obj &&
-          Array.isArray(obj.itemRefs) && obj.itemRefs.length > 0
-  )
+export function getTrackerItems_success(
+  obj: unknown,
+): obj is types.TrackerItemReferenceSearchResult {
+  // console.log(JSON.stringify(obj));
+  return (
+    typeof obj === "object" &&
+    obj != null &&
+    "total" in obj &&
+    "itemRefs" in obj &&
+    Array.isArray(obj.itemRefs) && obj.itemRefs.length > 0
+  );
 }
 
 /**
@@ -147,61 +155,69 @@ export function getTrackerItems_success(obj: unknown) : obj is types.TrackerItem
  * @param pageSize how many items should be included in the response.
  * @return Promise<any>
  */
-export async function queryItems(cb: types.cbinit, query: string, page: number = 1, pageSize: number = 100) {
+export async function queryItems(
+  cb: types.cbinit,
+  query: string,
+  page: number = 1,
+  pageSize: number = 100,
+) {
+  /* number of items to be returned. */
+  let total = 0;
+  /* number of items that have been read so far. */
+  let currentRead = 0;
+  /* open-api end point */
+  let target = cb.serverUrl + "/items/query?page=" + page + "&pageSize=" +
+    pageSize + "&queryString=" + encodeURI(query);
+  /* response data */
+  const res: types.TrackerItemSearchResult = {
+    total: 0,
+    page: page,
+    pageSize: pageSize,
+    items: [],
+  };
 
-    /* number of items to be returned. */
-    let total = 0;
-    /* number of items that have been read so far. */
-    let currentRead = 0;
-    /* open-api end point */
-    let target = cb.serverUrl + "/items/query?page=" + page + "&pageSize=" + pageSize + "&queryString=" + encodeURI(query);
-    /* response data */
-    const res: types.TrackerItemSearchResult = {total: 0, page: page, pageSize: pageSize, items: []};
+  let chunk;
+  let counter = 0;
+  /* get all the chunks and aggregate them into single response. */
+  do {
+    /* access to Codebeamer endpoint to get query result */
+    try {
+      chunk = await doFetch(target, cb);
+    } catch (e) {
+      console.error(e);
+    }
 
-    let chunk;
-    let counter = 0;
-    /* get all the chunks and aggregate them into single response. */
-    do {
+    /* check if returned data pass the type guard. if false, exit. */
+    if (!queryItems_success(chunk)) break;
 
-        /* access to Codebeamer endpoint to get query result */
-        try {
-            chunk = await doFetch(target, cb);
-        } catch (e) {
-            console.error(e);
-        }
+    /* check if total is bigger than 0. if true, preserve it, otherwise exit. */
+    if ((total = chunk.total != null ? chunk.total : 0) === 0) break;
 
-        /* check if the type of returned data is one expected. if false, exit. */
-        if (! queryItems_success(chunk)) break;
+    /* check if items is array and not null. if true, concatenate it to response data. */
+    if (chunk.items != null && Array.isArray(chunk.items)) {
+      /* check if returned data has at least one item. if false, then exit. */
+      if (chunk.items.length === 0) break;
 
-        /* check if total is bigger than 0. if true, preserve it, otherwise exit. */
-        if ((total = (chunk.total != null ? chunk.total : 0)) === 0) break;
+      /* set total and pageSIze to response value. do this only in the first occurrence. */
+      if (counter === 0) {
+        res.total = chunk.total;
+        res.pageSize = chunk.total;
+      }
 
-        /* check if items is array and not null. if true, concatenate it to response data. */
-        if (chunk.items != null && Array.isArray(chunk.items)) {
+      /* concatenate returned value with response value. */
+      if (res.items == null) res.items = [];
+      res.items = res.items.concat(chunk.items);
 
-            /* check if items[] has data. if false, then exit. */
-            if (chunk.items.length === 0) break;
+      /* calculate number of items that have been read so far. */
+      currentRead = currentRead + chunk.items.length;
+    }
 
-            /* set total and pageSIze to response value. do this only in the first occurrence. */
-            if (counter === 0 ) {
-                res.total = chunk.total;
-                res.pageSize = chunk.total;
-            }
+    target = cb.serverUrl + "/items/query?page=" + ++page + "&pageSize=" +
+      pageSize + "&queryString=" + encodeURI(query);
+    counter++;
+  } while (currentRead < total);
 
-            /* concatenate returned value with response value. */
-            if (res.items == null) res.items = [];
-            res.items = res.items.concat(chunk.items);
-
-            /* calculate number of items that have been read so far. */
-            currentRead = currentRead + chunk.items.length;
-        }
-
-        target = cb.serverUrl + "/items/query?page=" + ++page + "&pageSize=" + pageSize + "&queryString=" + encodeURI(query);
-        counter++;
-
-    } while (currentRead < total);
-
-    return res;
+  return res;
 }
 
 /**
@@ -209,19 +225,39 @@ export async function queryItems(cb: types.cbinit, query: string, page: number =
  * @param obj
  * @return boolean
  */
-export function queryItems_success(obj: unknown) : obj is types.TrackerItemSearchResult {
-    return(
-        typeof obj === 'object' &&
-            obj != null &&
-            'total' in obj &&
-            'items' in obj &&
-            Array.isArray(obj.items) && obj.items.length > 0
-    )
+export function queryItems_success(
+  obj: unknown,
+): obj is types.TrackerItemSearchResult {
+  return (
+    typeof obj === "object" &&
+    obj != null &&
+    "total" in obj &&
+    "items" in obj &&
+    Array.isArray(obj.items) && obj.items.length > 0
+  );
 }
 
-
-export async function createItem(cb: types.cbinit, trackerId: number, item: types.TrackerItem) {
-    const target = cb.serverUrl + "/trackers/" + trackerId + "/items";
-    return await doFetch(target, cb, 'POST', item);
+export async function createItem(
+  cb: types.cbinit,
+  trackerId: number,
+  item: types.TrackerItem,
+) {
+  const target = cb.serverUrl + "/trackers/" + trackerId + "/items";
+  //TODO: check if item is of type 'TrackerItem'.
+  console.log("createItem(): " + target);
+  return await doFetch(target, cb, "POST", item);
 }
 
+export function createItem_success(obj: unknown): obj is types.TrackerItem {
+  return (
+    typeof obj === "object" &&
+    obj != null &&
+    "id" in obj &&
+    "name" in obj &&
+    "description" in obj &&
+    "subjects" in obj &&
+    "status" in obj
+  );
+}
+
+/* end of file */
