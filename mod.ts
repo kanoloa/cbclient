@@ -6,32 +6,42 @@
  * ```ts
  * import * as types from ./types/index.ts
  * import * as cbclient from ./mod.ts
-  * ```
+ * ```
  * @example get a list of project.
  * ```ts
- * const res = await cbclient.getProjects(cb: types.cbinit)
+ * const cb: types.cbinit = {
+ *   username: Deno.env.get("USERNAME"),
+ *   password: Deno.env.get("PASSWORD"),
+ *   serverUrl: Deno.env.get("SERVER_URL"),
+ * }
+ *
+ * const res = await cbclient.getProjects(cb)
  * if (cbclient.getProject_success(res)) {
  *   do_something
  * }
  * ```
  *
- * Each function has corresponding type guard function whose name is <functionName>_success.
- * Most of the function returns Promise<any>, use type guard function to check if the response is a type of
- * what you need.
+ * Each function has a corresponding type guard function whose name is <functionName>_success.
+ * Since most of the function returns Promise<any>, use type guard function to check if the response is of
+ * an expected type.
  *
  * # Environment file
  * To connect to Codebeamer via open-api (aka Swagger v3), you need to be authenticated and authorized by
  * the Codebeamer server you are accessing to. To provide username and password to this utility, you need to
  * create .env file at the same directory where this utility resides.
  *
+ * [!IMPORTANT]
+ * .env file has potential security risks of exposing your identity information to public.
+ * Please use this tool with much care.  I will implement more secure way in the future.
+ *
  * in the .env file, there must be 3 lines like below:
  * ```ts
  * USERNAME=tom # user username here.
  * PASSWORD=cat # password here.
- * SERVERURL # endpoint URL of Codebeamer open-api with [schema]:[server]:[port]:[path]
+ * SERVER_URL=https://my.server.com:443/cb/api/v3 # endpoint URL.
  * ```
- * SERVERURL may seem to be something like 'https://my.codebeamer.com:443/cb/api/v3'
- * YOU SHOULD NOT ADD TRAILING SLASH '/' AT THE END OF SERVERURL.
+ * SERVER_URL may seem to be something like '[schema]://[FQDN]:[port]/cb/api/v3'.
+ * YOU SHOULD NOT ADD TRAILING SLASH '/' AT THE END OF SERVER_URL.
  *
  * # Proxy Access
  * When you need to connect Codebeamer server via a proxy server, then you have to set HTTP_PROXY and
@@ -39,6 +49,8 @@
  *
  * [!IMPORTANT]
  * PTC does not support this program. Use this on your own responsibilities.
+ *
+ * 'No' copy rights reserved, 2025, Ats Yamada (kanoloa).
  *
  */
 
@@ -59,15 +71,22 @@ function setHeaders(cb: types.cbinit) {
   return headers;
 }
 
-async function doFetch(target: string, cb: types.cbinit, method: string = 'GET') {
+async function doFetch(target: string, cb: types.cbinit, method: string = 'GET', body?: unknown) {
   const headers: Headers = setHeaders(cb);
-  return await fetch(target, {method: method, headers: headers})
+  if (body == null || (body === 'GET')) {
+      return await fetch(target, {
+          method: method,
+          headers: headers,
+          body: (body != null ? JSON.stringify(body) : undefined)}
+      )
       .then((response: Response) => {
-        return response.json();
+          return response.json();
       })
       .then((jsonData) => {
-        return jsonData;
+          return jsonData;
       })
+  }
+
 }
 
 /**
@@ -96,7 +115,6 @@ export function getProjects_success(obj: unknown): obj is types.ProjectReference
  * @return Promise<any>
  */
 export async function getTrackerItems(cb: types.cbinit, trackerId: number) {
-  // if (! cb || ! trackerId) return;
   const target = cb.serverUrl + "/trackers/" + trackerId + "/items";
   return await doFetch(target, cb);
 }
@@ -119,9 +137,10 @@ export function getTrackerItems_success(obj: unknown) : obj is types.TrackerItem
 
 /**
  * Query items using cBQL.
- * A result of query may be divided into small chunks.  Chunk size is set to 100 by default, and could be increase
- * up to 500. When the number of items exceeds the chunk size, Codebeamer generates paginated results.
- * This function aggregates these chunks into single response.
+ * A result of query may be divided into two or more small chunks.
+ * Chunk size is set to 100 by default, and could be increase up to 500.
+ * When the number of items to be returned exceeds the chunk size, Codebeamer generates paginated results.
+ * This function aggregates these chunks into single response to keep programmers from doing it by themselves.
  * @param cb type cbinit
  * @param query query string
  * @param page start page
@@ -130,17 +149,19 @@ export function getTrackerItems_success(obj: unknown) : obj is types.TrackerItem
  */
 export async function queryItems(cb: types.cbinit, query: string, page: number = 1, pageSize: number = 100) {
 
-    let total = 0;     /* number of items */
-    let current = 0;   /* current position */
-    const res: types.TrackerItemSearchResult = {total: 0, page: 0, pageSize: 0, items: []};
+    /* number of items to be returned. */
+    let total = 0;
+    /* number of items that have been read so far. */
+    let currentRead = 0;
+    /* open-api end point */
     let target = cb.serverUrl + "/items/query?page=" + page + "&pageSize=" + pageSize + "&queryString=" + encodeURI(query);
+    /* response data */
+    const res: types.TrackerItemSearchResult = {total: 0, page: page, pageSize: pageSize, items: []};
 
+    let chunk;
     let counter = 0;
-
     /* get all the chunks and aggregate them into single response. */
     do {
-
-        let chunk;
 
         /* access to Codebeamer endpoint to get query result */
         try {
@@ -149,52 +170,38 @@ export async function queryItems(cb: types.cbinit, query: string, page: number =
             console.error(e);
         }
 
-        /* returned response does not match with declared type. */
-        if (! queryItems_success(chunk)) {
-            break;
-        }
+        /* check if the type of returned data is one expected. if false, exit. */
+        if (! queryItems_success(chunk)) break;
 
-        /* preserver total number of items. */
-        if (chunk.total != null) {
-            total = chunk.total;
-            /* argument 'page' is out of range of number of items. */
-            if (total == 0) {
-                console.log("total: 0.  No data found, exiting...")
-                break;
-            }
-        }
+        /* check if total is bigger than 0. if true, preserve it, otherwise exit. */
+        if ((total = (chunk.total != null ? chunk.total : 0)) === 0) break;
 
-        /* when an array for items exists, then process each of them */
+        /* check if items is array and not null. if true, concatenate it to response data. */
         if (chunk.items != null && Array.isArray(chunk.items)) {
 
-            /* no more data to read. exiting */
-            if (chunk.items.length === 0) {
-                console.log("page reached to the end of data, exiting...")
-                break;
-            }
+            /* check if items[] has data. if false, then exit. */
+            if (chunk.items.length === 0) break;
 
-            /* calculate number of items that have been read. */
-            current = current + chunk.items.length;
-
+            /* set total and pageSIze to response value. do this only in the first occurrence. */
             if (counter === 0 ) {
                 res.total = chunk.total;
-                res.page = chunk.page;
-                res.pageSize = chunk.pageSize;
-            }
-            counter++;
-
-            if (res.items == null) {
-                res.items = [];
+                res.pageSize = chunk.total;
             }
 
+            /* concatenate returned value with response value. */
+            if (res.items == null) res.items = [];
             res.items = res.items.concat(chunk.items);
+
+            /* calculate number of items that have been read so far. */
+            currentRead = currentRead + chunk.items.length;
         }
 
         target = cb.serverUrl + "/items/query?page=" + ++page + "&pageSize=" + pageSize + "&queryString=" + encodeURI(query);
+        counter++;
 
-    } while (current < total);
+    } while (currentRead < total);
 
-     return res;
+    return res;
 }
 
 /**
@@ -211,3 +218,10 @@ export function queryItems_success(obj: unknown) : obj is types.TrackerItemSearc
             Array.isArray(obj.items) && obj.items.length > 0
     )
 }
+
+
+export async function createItem(cb: types.cbinit, trackerId: number, item: types.TrackerItem) {
+    const target = cb.serverUrl + "/trackers/" + trackerId + "/items";
+    return await doFetch(target, cb, 'POST', item);
+}
+
