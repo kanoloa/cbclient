@@ -15,7 +15,7 @@ const tracker = Deno.env.get("TEST_TRACKER");
 Deno.test("Query Tracker Items", async () => {
   const query = "project.id IN (" + project + ") AND tracker.id IN (" +
     tracker + ")";
-  const res: types.TrackerItemSearchResult = await cbclient.queryItems(
+  const res = await cbclient.queryItems(
     cb,
     query,
     1,
@@ -24,5 +24,5 @@ Deno.test("Query Tracker Items", async () => {
   if (res.items != null) {
     console.log("queryItemTest: got " + res.items.length + " items.");
   }
-  assertEquals(cbclient.queryItems_success(res), true);
+  assertEquals(cbclient.isTrackerItemSearchResult(res), true);
 });

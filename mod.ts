@@ -78,9 +78,7 @@ async function doFetch(
   body?: unknown,
 ) {
   const headers: Headers = setHeaders(cb);
-  // console.log("doFetch(): method = " + method);
-  // console.log("doFetch(): body = " + JSON.stringify(body));
-  return await fetch(target, {
+    return await fetch(target, {
     method: method,
     headers: headers,
     body: (body != null ? JSON.stringify(body) : undefined),
@@ -93,14 +91,61 @@ async function doFetch(
     });
 }
 
+//
+// T Y P E G U A R D S
+//
+
 /**
- * Get a list of Codebeamer projects that the user can access to.
- * @param cb cbinit interface
- * @return Promise<any>
+ * Type guard for createItem() function.  Expected type is TrackerItem.
+ * @param obj
+ * @return boolean
  */
-export async function getProjects(cb: types.cbinit) {
-  const target = cb.serverUrl + "/projects";
-  return await doFetch(target, cb);
+export function isTrackerItem(obj: unknown): obj is types.TrackerItem {
+    return (
+        typeof obj === "object" &&
+        obj != null &&
+        "id" in obj &&
+        "name" in obj &&
+        "description" in obj &&
+        "subjects" in obj &&
+        "status" in obj
+    );
+}
+
+
+/**
+ * Type guard for queryItems function. Expected type is TrackerItemSearchResult.
+ * @param obj
+ * @return boolean
+ */
+export function isTrackerItemSearchResult(
+    obj: unknown,
+): obj is types.TrackerItemSearchResult {
+    return (
+        typeof obj === "object" &&
+        obj != null &&
+        "total" in obj &&
+        "items" in obj &&
+        Array.isArray(obj.items) && obj.items.length > 0
+    );
+}
+
+/**
+ * Type guard for getTrackerItems() function. Expected type is TrackerItemReferenceSearchResult.
+ * @param obj
+ * @return boolean
+ */
+export function isTrackerItemReferenceSearchResult(
+    obj: unknown,
+): obj is types.TrackerItemReferenceSearchResult {
+    // console.log(JSON.stringify(obj));
+    return (
+        typeof obj === "object" &&
+        obj != null &&
+        "total" in obj &&
+        "itemRefs" in obj &&
+        Array.isArray(obj.itemRefs) && obj.itemRefs.length > 0
+    );
 }
 
 /**
@@ -108,10 +153,30 @@ export async function getProjects(cb: types.cbinit) {
  * @param obj
  * @return boolean
  */
-export function getProjects_success(
-  obj: unknown,
+export function isProjectReference(
+    obj: unknown,
 ): obj is types.ProjectReference {
-  return (Array.isArray(obj) && obj.length > 0);
+    return (Array.isArray(obj) && obj.length > 0);
+}
+
+//
+// C. R. U. D.  F U N C T I O N S
+//
+
+/**
+ * Get a list of Codebeamer projects that the user can access to.
+ * @param cb cbinit interface
+ * @return Promise<any>
+ */
+export async function getProjects(cb: types.cbinit) {
+  const target = cb.serverUrl + "/projects";
+  const res = await doFetch(target, cb);
+  if (isProjectReference(res)) {
+    return res;
+  } else {
+    console.error(JSON.stringify(res,null,2));
+    return null;
+  }
 }
 
 /**
@@ -122,26 +187,15 @@ export function getProjects_success(
  */
 export async function getTrackerItems(cb: types.cbinit, trackerId: number) {
   const target = cb.serverUrl + "/trackers/" + trackerId + "/items";
-  return await doFetch(target, cb);
+  const res = await doFetch(target, cb);
+  if (isTrackerItemReferenceSearchResult(res)) {
+    return res;
+  } else {
+    console.error(JSON.stringify(res,null,2));
+    return null;
+  }
 }
 
-/**
- * Type guard for getTrackerItems() function. Expected type is TrackerItemReferenceSearchResult.
- * @param obj
- * @return boolean
- */
-export function getTrackerItems_success(
-  obj: unknown,
-): obj is types.TrackerItemReferenceSearchResult {
-  // console.log(JSON.stringify(obj));
-  return (
-    typeof obj === "object" &&
-    obj != null &&
-    "total" in obj &&
-    "itemRefs" in obj &&
-    Array.isArray(obj.itemRefs) && obj.itemRefs.length > 0
-  );
-}
 
 /**
  * Query items using cBQL.
@@ -188,7 +242,7 @@ export async function queryItems(
     }
 
     /* check if returned data pass the type guard. if false, exit. */
-    if (!queryItems_success(chunk)) break;
+    if (!isTrackerItemSearchResult(chunk)) break;
 
     /* check if total is bigger than 0. if true, preserve it, otherwise exit. */
     if ((total = chunk.total != null ? chunk.total : 0) === 0) break;
@@ -221,43 +275,31 @@ export async function queryItems(
 }
 
 /**
- * Type guard for queryItems function. Expected type is TrackerItemSearchResult.
- * @param obj
- * @return boolean
+ * Create an item in a tracker.
+ * @param cb cbinit.
+ * @param trackerId tracker in.
+ * @param item item data
+ * @return Promise<any>
  */
-export function queryItems_success(
-  obj: unknown,
-): obj is types.TrackerItemSearchResult {
-  return (
-    typeof obj === "object" &&
-    obj != null &&
-    "total" in obj &&
-    "items" in obj &&
-    Array.isArray(obj.items) && obj.items.length > 0
-  );
-}
-
 export async function createItem(
   cb: types.cbinit,
   trackerId: number,
   item: types.TrackerItem,
 ) {
   const target = cb.serverUrl + "/trackers/" + trackerId + "/items";
-  //TODO: check if item is of type 'TrackerItem'.
-  console.log("createItem(): " + target);
-  return await doFetch(target, cb, "POST", item);
-}
-
-export function createItem_success(obj: unknown): obj is types.TrackerItem {
-  return (
-    typeof obj === "object" &&
-    obj != null &&
-    "id" in obj &&
-    "name" in obj &&
-    "description" in obj &&
-    "subjects" in obj &&
-    "status" in obj
-  );
+  if ('name' in item && 'description' in item) { // check if item has mandatory values.
+    // return await doFetch(target, cb, "POST", item);
+      const res = await doFetch(target, cb, "POST", item);
+      if (isTrackerItem(res)) {
+          return res;
+      } else {
+          console.error(JSON.stringify(res,null,2));
+          return null;
+      }
+  } else {
+    console.error("createItem(): immature request body. INPUT = " + JSON.stringify(item,null,2));
+    return null;
+  }
 }
 
 /* end of file */

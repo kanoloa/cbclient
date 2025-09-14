@@ -15,10 +15,10 @@ Deno.test("Create an item", async () => {
   //const res: Array<types.ProjectReference> = await cbclient.getProjects(cb);
   const target = tracker != null ? parseInt(tracker) : 0;
   const item: types.TrackerItem = {
-    name: "created by cbclient (test) at " + new Date().getTime(),
+    name: "created by cbclient (test) at " + new Date().toString(),
     description:
       "This item has been created through open api (Deno: typescript)",
   };
-  const res: types.TrackerItem = await cbclient.createItem(cb, target, item);
-  assertEquals(cbclient.createItem_success(res), true);
+  const res = await cbclient.createItem(cb, target, item);
+  assertEquals(cbclient.isTrackerItem(res), true);
 });

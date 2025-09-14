@@ -10,6 +10,6 @@ const cb: types.cbinit = {
 };
 
 Deno.test("Get Projects", async () => {
-  const res: Array<types.ProjectReference> = await cbclient.getProjects(cb);
-  assertEquals(cbclient.getProjects_success(res), true);
+  const res = await cbclient.getProjects(cb);
+  assertEquals(cbclient.isProjectReference(res), true);
 });

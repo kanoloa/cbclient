@@ -15,13 +15,12 @@ const tracker_noexist = Deno.env.get("TEST_TRACKER_NOEXIST");
 Deno.test("Get Tracker Items", async (t) => {
   await t.step("Existing tracker", async () => {
     const target = tracker != null ? parseInt(tracker) : 0;
-    const res: types.TrackerItemReferenceSearchResult = await cbclient
-      .getTrackerItems(cb, target);
-    assertEquals(cbclient.getTrackerItems_success(res), true);
+    const res = await cbclient.getTrackerItems(cb, target);
+    assertEquals(cbclient.isTrackerItemReferenceSearchResult(res), true);
   });
   await t.step("Non existing tracker", async () => {
     const target = tracker_noexist != null ? parseInt(tracker_noexist) : 0;
     const res = await cbclient.getTrackerItems(cb, target); // not exist
-    assertEquals(cbclient.getTrackerItems_success(res), false);
+    assertEquals(cbclient.isTrackerItemReferenceSearchResult(res), false);
   });
 });
