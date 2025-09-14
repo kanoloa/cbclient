@@ -174,7 +174,7 @@ export async function getProjects(cb: types.cbinit) {
   if (isProjectReference(res)) {
     return res;
   } else {
-    console.error(JSON.stringify(res,null,2));
+    console.error("getProjects(): type doesn't match: " + JSON.stringify(res,null,2));
     return null;
   }
 }
@@ -191,7 +191,7 @@ export async function getTrackerItems(cb: types.cbinit, trackerId: number) {
   if (isTrackerItemReferenceSearchResult(res)) {
     return res;
   } else {
-    console.error(JSON.stringify(res,null,2));
+    console.error("getTrackerItems(): type doesn't match: " + JSON.stringify(res,null,2));
     return null;
   }
 }
@@ -242,7 +242,10 @@ export async function queryItems(
     }
 
     /* check if returned data pass the type guard. if false, exit. */
-    if (!isTrackerItemSearchResult(chunk)) break;
+    if (!isTrackerItemSearchResult(chunk)) {
+        console.error("queryItems(): type doesn't match: " + JSON.stringify(chunk,null,2));
+        break;
+    }
 
     /* check if total is bigger than 0. if true, preserve it, otherwise exit. */
     if ((total = chunk.total != null ? chunk.total : 0) === 0) break;
@@ -293,7 +296,7 @@ export async function createItem(
       if (isTrackerItem(res)) {
           return res;
       } else {
-          console.error(JSON.stringify(res,null,2));
+          console.error("createItem(): type doesn't match: " + JSON.stringify(res,null,2));
           return null;
       }
   } else {
