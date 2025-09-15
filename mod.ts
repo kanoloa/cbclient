@@ -1,59 +1,13 @@
 /**
  * Codebeamer client utility written in TypeScript.
- *
- * # Examples
- * @example instantiate Codebeamer client.
- * ```ts
- * import * as types from ./types/index.ts
- * import * as cbclient from ./mod.ts
- * ```
- * @example get a list of project.
- * ```ts
- * const cb: types.cbinit = {
- *   username: Deno.env.get("USERNAME"),
- *   password: Deno.env.get("PASSWORD"),
- *   serverUrl: Deno.env.get("SERVER_URL"),
- * }
- *
- * const res = await cbclient.getProjects(cb)
- * if (cbclient.getProject_success(res)) {
- *   do_something
- * }
- * ```
- *
- * Each function has a corresponding type guard function whose name is <functionName>_success.
- * Since most of the function returns Promise<any>, use type guard function to check if the response is of
- * an expected type.
- *
- * # Environment file
- * To connect to Codebeamer via open-api (aka Swagger v3), you need to be authenticated and authorized by
- * the Codebeamer server you are accessing to. To provide username and password to this utility, you need to
- * create .env file at the same directory where this utility resides.
- *
- * [!IMPORTANT]
- * .env file has potential security risks of exposing your identity information to public.
- * Please use this tool with much care.  I will implement more secure way in the future.
- *
- * in the .env file, there must be 3 lines like below:
- * ```ts
- * USERNAME=tom # user username here.
- * PASSWORD=cat # password here.
- * SERVER_URL=https://my.server.com:443/cb/api/v3 # endpoint URL.
- * ```
- * SERVER_URL may seem to be something like '[schema]://[FQDN]:[port]/cb/api/v3'.
- * YOU SHOULD NOT ADD TRAILING SLASH '/' AT THE END OF SERVER_URL.
- *
- * # Proxy Access
- * When you need to connect Codebeamer server via a proxy server, then you have to set HTTP_PROXY and
- * HTTPS_PROXY environment variables.  These variables can not be set in .env file.
- *
- * [!IMPORTANT]
- * PTC does not support this program. Use this on your own responsibilities.
- *
- * 'No' copy rights reserved, 2025, Ats Yamada (kanoloa).
+ * see README.md for more details.
  */
 
 import * as types from "./types/index.ts";
+
+//
+// I N T E R N A L  F U N C T I O N S
+//
 
 function setHeaders(cb: types.cbinit) {
   const headers = new Headers();
@@ -64,7 +18,6 @@ function setHeaders(cb: types.cbinit) {
       "Authorization",
       "Basic " + btoa(`${cb.username}:${cb.password}`),
     );
-    // console.log("setHeaders: Authorization: " + headers.get("Authorization"));
   } else {
     console.log("setHeaders: immature server information.");
   }
@@ -96,7 +49,21 @@ async function doFetch(
 //
 
 /**
- * Type guard for createItem() function.  Expected type is TrackerItem.
+ * Type guard for input parameter of createItem() function.
+ * @param obj
+ * @return boolean
+ */
+export function isMinimumItemFields(obj: unknown): obj is types.minimumItemFields{
+    return(
+        typeof obj === 'object' &&
+        obj != null &&
+        'name' in obj &&
+        'description' in obj
+    )
+}
+
+/**
+ * Type guard for an item. The expected type is TrackerItem.
  * @param obj
  * @return boolean
  */
@@ -112,9 +79,43 @@ export function isTrackerItem(obj: unknown): obj is types.TrackerItem {
     );
 }
 
+/**
+ * Type guard for AbstractFieldValue.
+ * @param obj
+ * @returns boolean
+ */
+export function isAbstractFieldValue(obj: unknown): obj is types.AbstractFieldValue {
+    return (
+        typeof obj === "object" &&
+        obj != null &&
+        "type" in obj &&
+        ("value" in obj || "values" in obj)
+    );
+}
+/**
+ * Type guard for input parameter of updateItem() function.
+ * Updating table values is not supported yet.
+ * @param obj
+ * @return booean
+ */
+export function isUpdateTrackerItemField(obj: unknown): obj is types.UpdateTrackerItemField {
+    if (typeof obj !== 'object' || obj == null) return false;
+    if ('fieldValues' in obj && Array.isArray(obj.fieldValues) && obj.fieldValues.length > 0) {
+        /* case of a single item update. */
+        return obj.fieldValues.every(isAbstractFieldValue);
+    } else if (Array.isArray(obj) && obj.length > 0) {
+        /* case of a bulk update. */
+        obj.every((data) => {
+            return 'itemId' in data && 'fieldValues' in data && Array.isArray(data.fieldValues) && data.fieldValues.length > 0;
+        });
+        return true;
+    } else {
+        return false;
+    }
+}
 
 /**
- * Type guard for queryItems function. Expected type is TrackerItemSearchResult.
+ * Type guard for the queryItems() function. The expected type is TrackerItemSearchResult.
  * @param obj
  * @return boolean
  */
@@ -131,7 +132,7 @@ export function isTrackerItemSearchResult(
 }
 
 /**
- * Type guard for getTrackerItems() function. Expected type is TrackerItemReferenceSearchResult.
+ * Type guard for getTrackerItems() function. The expected type is TrackerItemReferenceSearchResult.
  * @param obj
  * @return boolean
  */
@@ -149,7 +150,7 @@ export function isTrackerItemReferenceSearchResult(
 }
 
 /**
- * Type guard for getProject() function. Expected type is ProjectReference.
+ * Type guard for getProject() function. The expected type is ProjectReference.
  * @param obj
  * @return boolean
  */
@@ -199,10 +200,10 @@ export async function getTrackerItems(cb: types.cbinit, trackerId: number) {
 
 /**
  * Query items using cBQL.
- * A result of query may be divided into two or more small chunks.
- * Chunk size is set to 100 by default, and could be increase up to 500.
+ * A result of a query may be divided into two or more small chunks.
+ * Chunk size is set to 100 by default and could be increase up to 500.
  * When the number of items to be returned exceeds the chunk size, Codebeamer generates paginated results.
- * This function aggregates these chunks into single response to keep programmers from doing it by themselves.
+ * This function aggregates these chunks into a single response to keep programmers from doing it by themselves.
  * @param cb type cbinit
  * @param query query string
  * @param page start page
@@ -232,9 +233,9 @@ export async function queryItems(
 
   let chunk;
   let counter = 0;
-  /* get all the chunks and aggregate them into single response. */
+  /* get all the chunks and aggregate them into a single response. */
   do {
-    /* access to Codebeamer endpoint to get query result */
+    /* access to Codebeamer endpoint to get a query result */
     try {
       chunk = await doFetch(target, cb);
     } catch (e) {
@@ -247,10 +248,8 @@ export async function queryItems(
         break;
     }
 
-    /* check if total is bigger than 0. if true, preserve it, otherwise exit. */
-    if ((total = chunk.total != null ? chunk.total : 0) === 0) break;
 
-    /* check if items is array and not null. if true, concatenate it to response data. */
+    /* check if items is an array and not null. if true, concatenate it to response data. */
     if (chunk.items != null && Array.isArray(chunk.items)) {
       /* check if returned data has at least one item. if false, then exit. */
       if (chunk.items.length === 0) break;
@@ -259,13 +258,16 @@ export async function queryItems(
       if (counter === 0) {
         res.total = chunk.total;
         res.pageSize = chunk.total;
+
+        /* check if the total is bigger than 0. if true, preserve it, otherwise exit. */
+        if ((total = chunk.total != null ? chunk.total : 0) === 0) break;
       }
 
-      /* concatenate returned value with response value. */
+      /* concatenate the returned value with response value. */
       if (res.items == null) res.items = [];
       res.items = res.items.concat(chunk.items);
 
-      /* calculate number of items that have been read so far. */
+      /* calculate the number of items that have been read so far. */
       currentRead = currentRead + chunk.items.length;
     }
 
@@ -290,7 +292,7 @@ export async function createItem(
   item: types.TrackerItem,
 ) {
   const target = cb.serverUrl + "/trackers/" + trackerId + "/items";
-  if ('name' in item && 'description' in item) { // check if item has mandatory values.
+  if (isMinimumItemFields(item)) { // check if the item has mandatory values.
     // return await doFetch(target, cb, "POST", item);
       const res = await doFetch(target, cb, "POST", item);
       if (isTrackerItem(res)) {
@@ -305,4 +307,31 @@ export async function createItem(
   }
 }
 
-/* end of file */
+/**
+ * Update an item.  This function receives field values to be updated.
+ * @param cb cbinit
+ * @param itemId item ID
+ * @param item item data
+ * @return Promise<any>
+ */
+export async function updateItem(
+    cb: types.cbinit,
+    itemId: number,
+    item: types.UpdateTrackerItemField,
+) {
+    const target = cb.serverUrl + "/items/" + itemId + "/fields";
+    if (isUpdateTrackerItemField(item)) {
+        const res = await doFetch(target, cb, "PUT", item);
+        if (isTrackerItem(res)) {
+            return res;
+        } else {
+            console.error("updateItem(): type doesn't match: " + JSON.stringify(res,null,2));
+            return null;
+        }
+    } else {
+        console.error("updateItem(): unexpected input. expected is UpdateTrackerItemFields, but actual is "
+            + JSON.stringify(item,null,2));
+        return null;
+    }
+}
+/* end of this file */
