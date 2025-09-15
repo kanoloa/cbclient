@@ -36,14 +36,17 @@ For example, a type guard for TrackerItem is 'isTrackerItem.'
 Since most of the function returns Promise\<any\>, use the corresponding type guard function
 to check if the response is of an expected type.
 
+> [!NOTE]
+> All interface is exported as type in the types/index.ts.
+
 ## Environment file
 To connect to Codebeamer via open-api (aka Swagger v3), you need to be authenticated and authorized by
 the Codebeamer server you are accessing to. To provide username and password to this utility, you need to
 create a .env file at the same directory where this utility resides.
 
-[!WARNING]
-.env file has potential security risks of exposing your identity information to the public.
-Please use this tool with much care.  I will implement a more secure way in the future.
+> [!WARNING]
+> .env file has potential security risks of exposing your identity information to the public.
+> Please use this tool with much care.  I will implement a more secure way in the future.
 
 in the .env file, there must be three lines like below:
 ```dotenv
@@ -67,8 +70,8 @@ Currently, these methods listed below are implemented.
 - createItem(): create an item in the specified tracker.
 - updateItem(): update the specified item with the given data.
  
-[!WARNING]
-PTC does not support this program. Use this on your own responsibilities.
+> [!WARNING]
+> PTC does not support this program. Use this on your own responsibilities.
 
 
 
