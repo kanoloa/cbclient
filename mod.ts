@@ -105,10 +105,9 @@ export function isUpdateTrackerItemField(obj: unknown): obj is types.UpdateTrack
         return obj.fieldValues.every(isAbstractFieldValue);
     } else if (Array.isArray(obj) && obj.length > 0) {
         /* case of a bulk update. */
-        obj.every((data) => {
+        return obj.every((data) => {
             return 'itemId' in data && 'fieldValues' in data && Array.isArray(data.fieldValues) && data.fieldValues.length > 0;
         });
-        return true;
     } else {
         return false;
     }
