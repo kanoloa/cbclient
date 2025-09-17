@@ -109,6 +109,13 @@ if (isBulkOperationResponse(res)) {
     do_something();
 }
 ```
+delete an item.
+```ts
+const res = await client.deleteItem(cb, 1122334); // 1122334 -> item Id.
+if (isTrackerItem(res)) {
+    do_something();
+}
+```
 
 Each Codebeamer Type has a corresponding type guard function whose name is "is\<Type\>". 
 For example, a type guard for TrackerItem is 'isTrackerItem.'
@@ -161,9 +168,14 @@ Currently, these methods listed below are implemented.
 - createItem(): create an item in the specified tracker.
 - updateItem(): update the specified item with the given data.
 - bulkUpdateItems(): update multiple items with the given array of data.
+- deleteItem(): delete the specified item.
  
 > [!WARNING]
 > PTC does not support this program. Use this on your own responsibilities.
+
+----
+&copy; 2025 Ats Yamada (kanoloa)
+
 
 
 

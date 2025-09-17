@@ -384,4 +384,19 @@ export async function bulkUpdateItems(cb: types.cbinit, itemArray: types.UpdateT
     }
     return null;
 }
+
+/**
+ * Delete an item.
+ * @param cb
+ * @param itemId
+ * @return Promise<any>
+ */
+export async function deleteItem(cb: types.cbinit, itemId: number) {
+    const target = cb.serverUrl + "/items/" + itemId;
+    const res = await doFetch(target, cb, "DELETE");
+    if (isTrackerItem(res)) {
+        return res;
+    }
+    return null;
+}
 /* end of this file */
