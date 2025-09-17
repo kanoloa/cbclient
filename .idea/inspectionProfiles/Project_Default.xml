@@ -1,12 +1,7 @@
 <component name="InspectionProjectProfileManager">
   <profile version="1.0">
     <option name="myName" value="Project Default" />
-    <inspection_tool
-      class="HttpUrlsUsage"
-      enabled="true"
-      level="WEAK WARNING"
-      enabled_by_default="true"
-    >
+    <inspection_tool class="HttpUrlsUsage" enabled="true" level="WEAK WARNING" enabled_by_default="true">
       <option name="ignoredUrls">
         <list>
           <option value="http://0.0.0.0" />
@@ -21,6 +16,9 @@
           <option value="http://maven.apache.org/POM/" />
           <option value="http://maven.apache.org/xsd/" />
           <option value="http://primefaces.org/ui" />
+          <option value="http://proxy.example.com" />
+          <option value="http://proxy.example.com" />
+          <option value="http://proxy.example.com" />
           <option value="http://proxy.kanoloa.net" />
           <option value="http://schema.cloudfoundry.org/spring/" />
           <option value="http://schemas.xmlsoap.org/" />

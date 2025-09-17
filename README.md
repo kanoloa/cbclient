@@ -54,7 +54,7 @@ const item: types.TrackerItem = {
     description: "description",
 };
 
-const res = await createItem(cb, 123456, item); // 123456 -> tracker ID
+const res = await client.createItem(cb, 123456, item); // 123456 -> tracker ID
 if (isTrackerItem(res)) {
     do_something();
 }
@@ -71,7 +71,7 @@ const item: types.UpdateTrackerItemField = {
     fieldValues: [value],
 };
 
-const res = await cbclient.updateItem(cb, 6574839, item); // 6574839 -> item ID. 
+const res = await client.updateItem(cb, 6574839, item); // 6574839 -> item ID. 
 if (isTrackerItem(res)) {
     do_something();
 }
@@ -104,7 +104,7 @@ const item2: types.BulkUpdateTrackerItemFields = {
 
 const itemArray: Array<types.BulkUpdateTrackerItemFields> = [item1, item2];
 
-const res = await cbclient.bulkUpdateItems(cb, itemArray);
+const res = await client.bulkUpdateItems(cb, itemArray);
 if (isBulkOperationResponse(res)) {
     do_something();
 }
