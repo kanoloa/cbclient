@@ -38,7 +38,7 @@ SERVER_URL=https://my.server.com:443/cb/api/v3
 ```
 SERVER_URL may seem to be something like '[schema]://[FQDN]:[port]/cb/api/v3'.
 
->[! NOTE]
+>[!NOTE]
 > YOU SHOULD NOT ADD TRAILING SLASH '/' AT THE END OF SERVER_URL.
 
 
