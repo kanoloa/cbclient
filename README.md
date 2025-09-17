@@ -12,22 +12,103 @@ This tool helps those who are not experienced in writing code using Codebeamer a
 
 
 ## Examples
-instantiate a Codebeamer client.
+Initialize a Codebeamer client.
 ```ts
 import * as types from "./types/index.ts";
 import * as client from "./mod.ts";
-```
-get a list of a project.
-```ts
+
 const cb: types.cbinit = {
-  username: Deno.env.get("USERNAME"),
-  password: Deno.env.get("PASSWORD"),
-  serverUrl: Deno.env.get("SERVER_URL"),
+    username: Deno.env.get("USERNAME"),
+    password: Deno.env.get("PASSWORD"),
+    serverUrl: Deno.env.get("SERVER_URL"),
 }
 
+```
+Get a list of a project.
+```ts
 const res = await client.getProjects(cb);
 if (client.isProjectReference(res)) {
     console.log(JSON.stringify(res, null, 2));
+}
+```
+Get a list of tracker items in a project.
+```ts
+const res = await client.getTrackerItems(cb, 123456); // tracker ID.
+if (isTrackerItemReferenceSearchResult(res)) {
+    do_somethitng();
+}
+```
+query items.
+```ts
+const query = 'project.id IN (123456) AND tracker.id IN (987654)';
+const res = await client.queryItems(cb, query, 1, 200); // 1 -> page number, 200 -> chunk size
+if (isTrackerItemSearchResult(res)) {
+    do_something();
+}
+```
+create an item.
+
+```ts
+const item: types.TrackerItem = {
+    summary: "summary",
+    description: "description",
+};
+
+const res = await createItem(cb, 123456, item); // 123456 -> tracker ID
+if (isTrackerItem(res)) {
+    do_something();
+}
+```
+update an item.
+```ts
+const value: types.AbstractFieldValue = {
+    fieldId: 3,
+    type: "TextFieldValue",
+    name: "Summary",
+    value: "name has been updated at " + new Date().toString() + "",
+};
+const item: types.UpdateTrackerItemField = {
+    fieldValues: [value],
+};
+
+const res = await cbclient.updateItem(cb, 6574839, item); // 6574839 -> item ID. 
+if (isTrackerItem(res)) {
+    do_something();
+}
+```
+bulk update items.
+
+```ts
+import {isBulkOperationResponse} from "./mod";
+
+const value1: types.AbstractFieldValue = {
+    fieldId: 3,
+    type: "TextFieldValue",
+    name: "Summary",
+    value: "name has been updated at " + new Date().toString() + ", for value_1.",
+};
+
+const value2: types.AbstractFieldValue = {
+    fieldId: 3,
+    type: "TextFieldValue",
+    name: "Summary",
+    value: "name has been updated at " + new Date().toString() + ", for value_2.",
+};
+
+const item1: types.BulkUpdateTrackerItemFields = {
+    itemId: 9999999, // item ID #1
+    fieldValues: [value1]
+};
+
+const item2: types.BulkUpdateTrackerItemFields = {
+    itemId: 8888888, // ItemId #2
+    fieldValues: [value2]
+};
+
+const itemArray: Array<types.BulkUpdateTrackerItemFields> = [item1, item2];
+const res = await cbclient.bulkUpdateItems(cb, itemArray);
+if (isBulkOperationResponse(res)) {
+    do_something();
 }
 ```
 

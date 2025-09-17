@@ -15,22 +15,23 @@ Deno.test("Update an item", async () => {
         name: "Summary",
         value: "name has been updated at " + new Date().toString() + ", for value_1.",
     };
-    const value2 ={
+
+    const value2: types.AbstractFieldValue ={
         fieldId: 3,
         type: "TextFieldValue",
         name: "Summary",
         value: "name has been updated at " + new Date().toString() + ", for value_2.",
-    }
+    };
 
     const item1: types.BulkUpdateTrackerItemFields = {
         itemId: 1823340,
         fieldValues: [value1]
-    }
+    };
 
     const item2: types.BulkUpdateTrackerItemFields = {
         itemId: 1823342,
         fieldValues: [value2]
-    }
+    };
 
     const itemArray: Array<types.BulkUpdateTrackerItemFields> = [item1,item2];
 
