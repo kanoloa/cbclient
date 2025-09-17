@@ -84,6 +84,9 @@ export function isTrackerItem(obj: unknown): obj is types.TrackerItem {
  * @param obj
  * @returns boolean
  */
+
+/*
+ * Reserved for future use.
 export function isAbstractFieldValue(obj: unknown): obj is types.AbstractFieldValue {
     return (
         typeof obj === "object" &&
@@ -92,25 +95,52 @@ export function isAbstractFieldValue(obj: unknown): obj is types.AbstractFieldVa
         ("value" in obj || "values" in obj)
     );
 }
+ */
+
 /**
  * Type guard for input parameter of updateItem() function.
- * Updating table values is not supported yet.
  * @param obj
- * @return booean
+ * @return boolean
  */
 export function isUpdateTrackerItemField(obj: unknown): obj is types.UpdateTrackerItemField {
-    if (typeof obj !== 'object' || obj == null) return false;
-    if ('fieldValues' in obj && Array.isArray(obj.fieldValues) && obj.fieldValues.length > 0) {
-        /* case of a single item update. */
-        return obj.fieldValues.every(isAbstractFieldValue);
-    } else if (Array.isArray(obj) && obj.length > 0) {
-        /* case of a bulk update. */
+    if (typeof obj === 'object' && obj != null) {
+        if ('fieldValues' in obj) {
+            return Array.isArray(obj.fieldValues) && obj.fieldValues.length > 0;
+        }
+        if ('tableValues' in obj) {
+            return Array.isArray(obj.tableValues) && obj.tableValues.length > 0;
+        }
+        return false;
+    }
+    return false;
+
+}
+
+/**
+ * Type guard for input parameter of bulkUpdateItems() function.
+ * @param obj
+ * @returns boolean
+ */
+export function isUpdateTrackerItemFieldWithItemId(obj: unknown): obj is types.BulkUpdateTrackerItemFields {
+    if (Array.isArray(obj) && obj.length > 0) {
         return obj.every((data) => {
             return 'itemId' in data && 'fieldValues' in data && Array.isArray(data.fieldValues) && data.fieldValues.length > 0;
         });
-    } else {
-        return false;
     }
+    return false;
+}
+
+/**
+ * Type guard for the bulkUpdateItems() function. The expected type is BulkOperationResponse.
+ * @param obj
+ * @return boolean
+ */
+export function isBulkOperationResponse(obj: unknown): obj is types.BulkOperationResponse {
+    return (
+        typeof obj === "object" &&
+        obj != null &&
+        'successfulOperationsCount' in obj
+    );
 }
 
 /**
@@ -195,7 +225,6 @@ export async function getTrackerItems(cb: types.cbinit, trackerId: number) {
     return null;
   }
 }
-
 
 /**
  * Query items using cBQL.
@@ -332,5 +361,27 @@ export async function updateItem(
             + JSON.stringify(item,null,2));
         return null;
     }
+}
+
+/**
+ * Bulk update items. This function receives an array of item values to be updated.
+ * @param cb cbinit
+ * @param itemArray array of items to be updated
+ * @return Promise<any>
+ */
+export async function bulkUpdateItems(cb: types.cbinit, itemArray: types.UpdateTrackerItemFieldWithItemId[]) {
+    const target = cb.serverUrl + "/items/fields";
+    if (isUpdateTrackerItemFieldWithItemId(itemArray)) {
+        const res = await doFetch(target, cb, "PUT", itemArray);
+        if (isBulkOperationResponse(res)) {
+            return res;
+        } else {
+            console.error("bulkUpdateItems(): type doesn't match: " + JSON.stringify(res,null,2));
+            return null;
+        }
+    } else {
+        console.error("bulkUpdateItems(): unexpected input. expected is UpdateTrackerItemFieldWithItemId[], but actual is ")
+    }
+    return null;
 }
 /* end of this file */

@@ -69,6 +69,7 @@ Currently, these methods listed below are implemented.
 - queryItems(): query items that meet the cBQL.
 - createItem(): create an item in the specified tracker.
 - updateItem(): update the specified item with the given data.
+- bulkUpdateItems(): update multiple items with the given array of data.
  
 > [!WARNING]
 > PTC does not support this program. Use this on your own responsibilities.

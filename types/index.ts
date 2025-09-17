@@ -10,6 +10,8 @@ export type TrackerItemReferenceSearchResult = components["schemas"]["TrackerIte
 export type TrackerItemSearchResult = components["schemas"]["TrackerItemSearchResult"];
 export type TrackerItem = components["schemas"]["TrackerItem"];
 export type UpdateTrackerItemField = components["schemas"]["UpdateTrackerItemField"];
+export type UpdateTrackerItemFieldWithItemId = components["schemas"]["UpdateTrackerItemFieldWithItemId"];
+export type BulkOperationResponse = components["schemas"]["BulkOperationResponse"];
 
 //
 // T Y P E  P A T C H
