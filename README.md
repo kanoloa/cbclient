@@ -77,15 +77,17 @@ if (isTrackerItem(res)) {
 }
 ```
 bulk update items.
-
 ```ts
-import {isBulkOperationResponse} from "./mod";
-
 const value1: types.AbstractFieldValue = {
     fieldId: 3,
     type: "TextFieldValue",
     name: "Summary",
     value: "name has been updated at " + new Date().toString() + ", for value_1.",
+};
+
+const item1: types.BulkUpdateTrackerItemFields = {
+    itemId: 9999999, // item ID #1
+    fieldValues: [value1]
 };
 
 const value2: types.AbstractFieldValue = {
@@ -95,17 +97,13 @@ const value2: types.AbstractFieldValue = {
     value: "name has been updated at " + new Date().toString() + ", for value_2.",
 };
 
-const item1: types.BulkUpdateTrackerItemFields = {
-    itemId: 9999999, // item ID #1
-    fieldValues: [value1]
-};
-
 const item2: types.BulkUpdateTrackerItemFields = {
     itemId: 8888888, // ItemId #2
     fieldValues: [value2]
 };
 
 const itemArray: Array<types.BulkUpdateTrackerItemFields> = [item1, item2];
+
 const res = await cbclient.bulkUpdateItems(cb, itemArray);
 if (isBulkOperationResponse(res)) {
     do_something();
@@ -139,8 +137,20 @@ SERVER_URL may seem to be something like '[schema]://[FQDN]:[port]/cb/api/v3'.
 YOU SHOULD NOT ADD TRAILING SLASH '/' AT THE END OF SERVER_URL.
 
 ## Proxy Access
-When you need to connect the Codebeamer server via a proxy server, then you have to set HTTP_PROXY and
-HTTPS_PROXY environment variables.  These variables cannot be set in the .env file.
+When you need to connect the Codebeamer server via a proxy server, then you have to set 
+ appropriate environment variables such as:
+```dotenv
+HTTPS_PROXY=https://proxy.example.com:3218
+HTTP_PROXY=https://proxy.example.com:3218
+NO_PROXY=localhost,127.0.0.1,*.example.com
+```
+In some cases you need to specify a username and password for the proxy server as below:
+```dotenv
+HTTPS_PROXY=https://username:password@proxy.example.com:3218
+HTTP_PROXY=https://username:password@proxy.example.com:3218
+```
+> [!NOTE]
+> These variables can't be set in the .env file.
 
 ## Methods
 Currently, these methods listed below are implemented.
