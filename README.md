@@ -21,32 +21,37 @@ Currently, these methods listed below are implemented.
 - bulkUpdateItems(): update multiple items with the given array of data.
 - deleteItem(): delete the specified item.
 
-## Environment variables and .env file
+## Configure credentials and server URL.
 To connect to Codebeamer via open-api (aka Swagger v3), you need to be authenticated and authorized by
 the Codebeamer server you are accessing to. To provide username and password to this utility, you need to
-create a .env file at the same directory where this utility resides.
+create an object: cbinit, and set the corresponding values like below.
+```ts
+import * as types from 'https://github.com/kanoloa/cbclient/raw/main/types/index.ts';
 
-> [!WARNING]
-> .env file has potential security risks of exposing your identity information to the public.
-> Please use this tool with much care.  I will implement a more secure way in the future.
-
-in the .env file, there must be three lines like below:
-```dotenv
-USERNAME=tom
-PASSWORD=cat
-SERVER_URL=https://my.server.com:443/cb/api/v3
+const cb = types.cbinit = {
+    username: "myid",
+    password: "mypass",
+    serverUrl: "https://cb.server.com/cb/api/v3",
+} as types.cbinit;
 ```
 SERVER_URL may seem to be something like '[schema]://[FQDN]:[port]/cb/api/v3'.
 
 >[!NOTE]
 > YOU SHOULD NOT ADD TRAILING SLASH '/' AT THE END OF SERVER_URL.
 
+## Test scripts and credentials.
+
+There exist a few test scripts in the test folder. These test scripts read the username, password, and server URL from
+ the.env file.
+
+> [!WARNING]
+> DO NOT USE ANY .env FILE THAT KEEP YOUR CREDENTIALS IN IT IN THE PRODUCTION ENVIRONMENT.
 
 ## Examples
 Initialize a Codebeamer client.
 ```ts
-import * as types from "./types/index.ts";
-import * as client from "./mod.ts";
+import * as client from 'https://github.com/kanoloa/cbclient/raw/main/mod.ts';
+import * as types from 'https://github.com/kanoloa/cbclient/raw/main/types/index.ts';
 
 const cb: types.cbinit = {
     username: Deno.env.get("USERNAME"),
