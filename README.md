@@ -39,6 +39,10 @@ SERVER_URL may seem to be something like '[schema]://[FQDN]:[port]/cb/api/v3'.
 >[!NOTE]
 > YOU SHOULD NOT ADD TRAILING SLASH '/' AT THE END OF SERVER_URL.
 
+The user you specify in cbinit must have the permission to access REST API in Codebeamer settings.
+API access rights are somewhat special in Codebeamer, so when you don't have the permission,
+please ask your Codebeamer administrator to grant you the permission.
+
 ## Test scripts and credentials.
 
 There exist a few test scripts in the test folder. These test scripts read the username, password, and server URL from
@@ -74,7 +78,7 @@ if (isTrackerItemReferenceSearchResult(res)) {
     do_somethitng();
 }
 ```
-query items.
+Query items.
 ```ts
 const query = 'project.id IN (123456) AND tracker.id IN (987654)';
 const res = await client.queryItems(cb, query, 1, 200); // 1 -> page number, 200 -> chunk size
@@ -82,7 +86,7 @@ if (isTrackerItemSearchResult(res)) {
     do_something();
 }
 ```
-create an item.
+Create an item.
 
 ```ts
 const item: types.TrackerItem = {
@@ -95,7 +99,7 @@ if (isTrackerItem(res)) {
     do_something();
 }
 ```
-update an item.
+Update an item.
 ```ts
 const value: types.AbstractFieldValue = {
     fieldId: 3,
@@ -112,7 +116,7 @@ if (isTrackerItem(res)) {
     do_something();
 }
 ```
-bulk update items.
+Bulk update items.
 ```ts
 const value1: types.AbstractFieldValue = {
     fieldId: 3,
@@ -145,7 +149,7 @@ if (isBulkOperationResponse(res)) {
     do_something();
 }
 ```
-delete an item.
+Delete an item.
 ```ts
 const res = await client.deleteItem(cb, 1122334); // 1122334 -> item Id.
 if (isTrackerItem(res)) {
@@ -174,8 +178,6 @@ In some cases you need to specify a username and password for the proxy server a
 HTTPS_PROXY=https://username:password@proxy.example.com:3218
 HTTP_PROXY=https://username:password@proxy.example.com:3218
 ```
-> [!NOTE]
-> These variables can't be set in the .env file.
 
 > [!WARNING]
 > PTC does not support this program. Use this on your own responsibilities.
