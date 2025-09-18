@@ -28,7 +28,7 @@ create an object: cbinit, and set the corresponding values like below.
 ```ts
 import * as types from 'https://github.com/kanoloa/cbclient/raw/main/types/index.ts';
 
-const cb = types.cbinit = {
+const cb: types.cbinit = {
     username: "myid",
     password: "mypass",
     serverUrl: "https://cb.server.com/cb/api/v3",
