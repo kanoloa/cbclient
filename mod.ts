@@ -37,11 +37,16 @@ async function doFetch(
     body: (body != null ? JSON.stringify(body) : undefined),
   })
     .then((response: Response) => {
-      return response.json();
+        if (response.ok) {
+            return response.json();
+        } else {
+            console.error("doFetch(): response.ok is false.");
+        }
     })
     .then((jsonData) => {
       return jsonData;
-    });
+    })
+        .catch((error) => {console.error(error);});
 }
 
 //
