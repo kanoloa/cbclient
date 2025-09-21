@@ -41,6 +41,7 @@ async function doFetch(
             return response.json();
         } else {
             console.error("doFetch(): response.ok is false.");
+            console.error("returned = " + JSON.stringify(response,null,2));
         }
     })
     .then((jsonData) => {
