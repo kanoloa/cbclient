@@ -259,6 +259,9 @@ export async function queryItems(
     items: [],
   };
 
+  console.log("queryItems(): target = " + target);
+  console.log("queryItems(): query = " + query);
+
   let chunk;
   let counter = 0;
   /* get all the chunks and aggregate them into a single response. */
