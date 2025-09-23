@@ -13,7 +13,7 @@ export type UpdateTrackerItemField = components["schemas"]["UpdateTrackerItemFie
 export type UpdateTrackerItemFieldWithItemId = components["schemas"]["UpdateTrackerItemFieldWithItemId"];
 export type BulkOperationResponse = components["schemas"]["BulkOperationResponse"];
 export type TrackerItemReference = components["schemas"]["TrackerItemReference"];
-
+export type TrackerItemChildReference = components["schemas"]["TrackerItemChildReference"];
 //
 // T Y P E  P A T C H
 //

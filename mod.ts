@@ -185,6 +185,21 @@ export function isTrackerItemReferenceSearchResult(
 }
 
 /**
+ * Type guard for addNewChildItem() function. The expected type is TrackerItemChildReference.
+ * @param obj
+ * @return boolean
+ */
+export function isTrackerItemChildReference(
+    obj: unknown
+): obj is types.TrackerItemChildReference {
+    return (
+        typeof obj === "object" &&
+        obj != null &&
+        "index" in obj &&
+        "itemReference" in obj
+    );
+}
+/**
  * Type guard for getProject() function. The expected type is ProjectReference.
  * @param obj
  * @return boolean
@@ -404,6 +419,25 @@ export async function deleteItem(cb: types.cbinit, itemId: number) {
     const target = cb.serverUrl + "/items/" + itemId;
     const res = await doFetch(target, cb, "DELETE");
     if (isTrackerItem(res)) {
+        return res;
+    }
+    return null;
+}
+
+/**
+ * Add a new child item to an item.
+ * @param cb
+ * @param parent
+ * @param child
+ * @return Promise<any>
+ */
+export async function addNewChildItem(cb: types.cbinit, parent: number, child: number) {
+    const target = cb.serverUrl + "/items/" + parent + "/children";
+    const item = {
+        id: child
+    }
+    const res = await doFetch(target, cb, "POST", item);
+    if (isTrackerItemChildReference(res)) {
         return res;
     }
     return null;

@@ -20,6 +20,7 @@ Currently, these methods listed below are implemented.
 - updateItem(): update the specified item with the given data.
 - bulkUpdateItems(): update multiple items with the given array of data.
 - deleteItem(): delete the specified item.
+- addNewChildItem(): add a child item to the specified item.
 
 ## Configure credentials and server URL.
 To connect to Codebeamer via open-api (aka Swagger v3), you need to be authenticated and authorized by
@@ -74,7 +75,7 @@ if (client.isProjectReference(res)) {
 Get a list of tracker items in a project.
 ```ts
 const res = await client.getTrackerItems(cb, 123456); // tracker ID.
-if (isTrackerItemReferenceSearchResult(res)) {
+if (client.isTrackerItemReferenceSearchResult(res)) {
     do_somethitng();
 }
 ```
@@ -82,7 +83,7 @@ Query items.
 ```ts
 const query = 'project.id IN (123456) AND tracker.id IN (987654)';
 const res = await client.queryItems(cb, query, 1, 200); // 1 -> page number, 200 -> chunk size
-if (isTrackerItemSearchResult(res)) {
+if (client.isTrackerItemSearchResult(res)) {
     do_something();
 }
 ```
@@ -95,7 +96,7 @@ const item: types.TrackerItem = {
 };
 
 const res = await client.createItem(cb, 123456, item); // 123456 -> tracker ID
-if (isTrackerItem(res)) {
+if (client.isTrackerItem(res)) {
     do_something();
 }
 ```
@@ -112,7 +113,7 @@ const item: types.UpdateTrackerItemField = {
 };
 
 const res = await client.updateItem(cb, 6574839, item); // 6574839 -> item ID. 
-if (isTrackerItem(res)) {
+if (client.isTrackerItem(res)) {
     do_something();
 }
 ```
@@ -145,14 +146,21 @@ const item2: types.BulkUpdateTrackerItemFields = {
 const itemArray: Array<types.BulkUpdateTrackerItemFields> = [item1, item2];
 
 const res = await client.bulkUpdateItems(cb, itemArray);
-if (isBulkOperationResponse(res)) {
+if (client.isBulkOperationResponse(res)) {
     do_something();
 }
 ```
 Delete an item.
 ```ts
 const res = await client.deleteItem(cb, 1122334); // 1122334 -> item Id.
-if (isTrackerItem(res)) {
+if (client.isTrackerItem(res)) {
+    do_something();
+}
+```
+Add new child item.
+```ts
+const res = await client.addNewChildItem(cb, parent, child); // parent -> parent item ID, child -> child item ID.
+if (client.isTrackerItemChildReference(res)) {
     do_something();
 }
 ```
