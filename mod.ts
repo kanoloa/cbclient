@@ -162,7 +162,7 @@ export function isTrackerItemSearchResult(
         obj != null &&
         "total" in obj &&
         "items" in obj &&
-        Array.isArray(obj.items) && obj.items.length > 0
+        Array.isArray(obj.items) //  && obj.items.length > 0
     );
 }
 
@@ -220,7 +220,7 @@ export function isProjectReference(
  * @return Promise<any>
  */
 export async function getProjects(cb: types.cbinit) {
-  const target = cb.serverUrl + "/projects";
+  const target = cb.serverUrl + "api/v3/projects";
   const res = await doFetch(target, cb);
   if (isProjectReference(res)) {
     return res;
@@ -237,7 +237,7 @@ export async function getProjects(cb: types.cbinit) {
  * @return Promise<any>
  */
 export async function getTrackerItems(cb: types.cbinit, trackerId: number) {
-  const target = cb.serverUrl + "/trackers/" + trackerId + "/items";
+  const target = cb.serverUrl + "api/v3/trackers/" + trackerId + "/items";
   const res = await doFetch(target, cb);
   if (isTrackerItemReferenceSearchResult(res)) {
     return res;
@@ -270,7 +270,7 @@ export async function queryItems(
   /* number of items that have been read so far. */
   let currentRead = 0;
   /* open-api end point */
-  let target = cb.serverUrl + "/items/query?page=" + page + "&pageSize=" +
+  let target = cb.serverUrl + "api/v3/items/query?page=" + page + "&pageSize=" +
     pageSize + "&queryString=" + encodeURI(query);
   /* response data */
   const res: types.TrackerItemSearchResult = {
@@ -323,7 +323,7 @@ export async function queryItems(
       currentRead = currentRead + chunk.items.length;
     }
 
-    target = cb.serverUrl + "/items/query?page=" + ++page + "&pageSize=" +
+    target = cb.serverUrl + "api/v3/items/query?page=" + ++page + "&pageSize=" +
       pageSize + "&queryString=" + encodeURI(query);
     counter++;
   } while (currentRead < total);
@@ -343,7 +343,7 @@ export async function createItem(
   trackerId: number,
   item: types.TrackerItem,
 ) {
-    const target = cb.serverUrl + "/trackers/" + trackerId + "/items";
+    const target = cb.serverUrl + "api/v3/trackers/" + trackerId + "/items";
     if (isMinimumItemFields(item)) { // check if the item has mandatory values.
     // return await doFetch(target, cb, "POST", item);
       const res = await doFetch(target, cb, "POST", item);
@@ -373,7 +373,7 @@ export async function createChildItem(
     item: types.TrackerItem,
     parent: number,
 ) {
-    const target = cb.serverUrl + "/trackers/" + trackerId + "/items?parentItemId=" + parent;
+    const target = cb.serverUrl + "api/v3/trackers/" + trackerId + "/items?parentItemId=" + parent;
     if (isMinimumItemFields(item)) {
         const res = await doFetch(target, cb, "POST", item);
         if (isTrackerItem(res)) {
@@ -400,7 +400,7 @@ export async function updateItem(
     itemId: number,
     item: types.UpdateTrackerItemField,
 ) {
-    const target = cb.serverUrl + "/items/" + itemId + "/fields";
+    const target = cb.serverUrl + "api/v3/items/" + itemId + "/fields";
     if (isUpdateTrackerItemField(item)) {
         const res = await doFetch(target, cb, "PUT", item);
         if (isTrackerItem(res)) {
@@ -423,7 +423,7 @@ export async function updateItem(
  * @return Promise<any>
  */
 export async function bulkUpdateItems(cb: types.cbinit, itemArray: types.UpdateTrackerItemFieldWithItemId[]) {
-    const target = cb.serverUrl + "/items/fields";
+    const target = cb.serverUrl + "api/v3/items/fields";
     if (isUpdateTrackerItemFieldWithItemId(itemArray)) {
         const res = await doFetch(target, cb, "PUT", itemArray);
         if (isBulkOperationResponse(res)) {
@@ -445,7 +445,7 @@ export async function bulkUpdateItems(cb: types.cbinit, itemArray: types.UpdateT
  * @return Promise<any>
  */
 export async function deleteItem(cb: types.cbinit, itemId: number) {
-    const target = cb.serverUrl + "/items/" + itemId;
+    const target = cb.serverUrl + "api/v3/items/" + itemId;
     const res = await doFetch(target, cb, "DELETE");
     if (isTrackerItem(res)) {
         return res;
@@ -461,7 +461,7 @@ export async function deleteItem(cb: types.cbinit, itemId: number) {
  * @return Promise<any>
  */
 export async function addNewChildItem(cb: types.cbinit, parent: number, child: number) {
-    const target = cb.serverUrl + "/items/" + parent + "/children";
+    const target = cb.serverUrl + "api/v3/items/" + parent + "/children";
     const item = {
         id: child
     }

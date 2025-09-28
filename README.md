@@ -32,13 +32,13 @@ import * as types from 'https://github.com/kanoloa/cbclient/raw/main/types/index
 const cb: types.cbinit = {
     username: "myid",
     password: "mypass",
-    serverUrl: "https://cb.server.com/cb/api/v3",
+    serverUrl: "https://cb.server.com/cb/",
 } as types.cbinit;
 ```
-SERVER_URL may seem to be something like '[schema]://[FQDN]:[port]/cb/api/v3'.
+SERVER_URL may seem to be something like '[schema]://[FQDN]:[port]/cb/'.
 
 >[!NOTE]
-> YOU SHOULD NOT ADD TRAILING SLASH '/' AT THE END OF SERVER_URL.
+> YOU SHOULD ADD TRAILING SLASH '/' AT THE END OF SERVER_URL.
 
 The user you specify in cbinit must have the permission to access REST API in Codebeamer settings.
 API access rights are somewhat special in Codebeamer, so when you don't have the permission,
