@@ -336,15 +336,15 @@ export async function queryItems(
  * @param cb cbinit.
  * @param trackerId tracker in.
  * @param item item data
- * @return Promise<any>
+  * @return Promise<any>
  */
 export async function createItem(
   cb: types.cbinit,
   trackerId: number,
   item: types.TrackerItem,
 ) {
-  const target = cb.serverUrl + "/trackers/" + trackerId + "/items";
-  if (isMinimumItemFields(item)) { // check if the item has mandatory values.
+    const target = cb.serverUrl + "/trackers/" + trackerId + "/items";
+    if (isMinimumItemFields(item)) { // check if the item has mandatory values.
     // return await doFetch(target, cb, "POST", item);
       const res = await doFetch(target, cb, "POST", item);
       if (isTrackerItem(res)) {
@@ -353,10 +353,39 @@ export async function createItem(
           console.error("createItem(): type doesn't match: " + JSON.stringify(res,null,2));
           return null;
       }
-  } else {
-    console.error("createItem(): immature request body. INPUT = " + JSON.stringify(item,null,2));
-    return null;
-  }
+    } else {
+        console.error("createItem(): immature request body. INPUT = " + JSON.stringify(item,null,2));
+        return null;
+    }
+}
+
+/**
+ * Create a child item in a tracker.
+ * @param cb
+ * @param trackerId
+ * @param item
+ * @param parent
+ * @return Promise<any>
+ */
+export async function createChildItem(
+    cb: types.cbinit,
+    trackerId: number,
+    item: types.TrackerItem,
+    parent: number,
+) {
+    const target = cb.serverUrl + "/trackers/" + trackerId + "/items?parentItemId=" + parent;
+    if (isMinimumItemFields(item)) {
+        const res = await doFetch(target, cb, "POST", item);
+        if (isTrackerItem(res)) {
+            return res;
+        } else {
+            console.error("createChildItem(): type doesn't match: " + JSON.stringify(res,null,2));
+            return null;
+        }
+    } else {
+        console.error("createChildItem(): immature request body. INPUT = " + JSON.stringify(item,null,2));
+        return null;
+    }
 }
 
 /**
