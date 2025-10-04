@@ -11,5 +11,5 @@ const cb: types.cbinit = {
 
 Deno.test("Get Projects", async () => {
   const res = await cbclient.getProjects(cb);
-  assertEquals(cbclient.isProjectReference(res), true);
+  assertEquals(cbclient.isProjectReferenceArray(res), true);
 });

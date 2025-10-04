@@ -4,50 +4,53 @@
  */
 
 import * as types from "./types/index.ts";
+export * as types from "./types/index.ts";
 
 //
 // I N T E R N A L  F U N C T I O N S
 //
 
 function setHeaders(cb: types.cbinit) {
-  const headers = new Headers();
-  if (cb.username && cb.password) {
-    headers.append("Accept", "application/json");
-    headers.append("Content-Type", "application/json");
-    headers.append(
-      "Authorization",
-      "Basic " + btoa(`${cb.username}:${cb.password}`),
-    );
-  } else {
-    console.log("setHeaders: immature server information.");
-  }
-  return headers;
+    const headers = new Headers();
+    if (cb.username && cb.password) {
+        headers.append("Accept", "application/json");
+        headers.append("Content-Type", "application/json");
+        headers.append(
+            "Authorization",
+            "Basic " + btoa(`${cb.username}:${cb.password}`),
+        );
+    } else {
+        console.log("setHeaders: immature server information.");
+    }
+    return headers;
 }
 
 async function doFetch(
-  target: string,
-  cb: types.cbinit,
-  method: string = "GET",
-  body?: unknown,
+    target: string,
+    cb: types.cbinit,
+    method: string = "GET",
+    body?: unknown,
 ) {
-  const headers: Headers = setHeaders(cb);
+    const headers: Headers = setHeaders(cb);
     return await fetch(target, {
-    method: method,
-    headers: headers,
-    body: (body != null ? JSON.stringify(body) : undefined),
-  })
-    .then((response: Response) => {
-        if (response.ok) {
-            return response.json();
-        } else {
-            console.error("doFetch(): response.ok is false.");
-            console.error("returned = " + JSON.stringify(response,null,2));
-        }
+        method: method,
+        headers: headers,
+        body: (body != null ? JSON.stringify(body) : undefined),
     })
-    .then((jsonData) => {
-      return jsonData;
-    })
-        .catch((error) => {console.error(error);});
+        .then(async (response: Response) => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                // console.error(`doFetch(): ERROR status = ${response.status} : ${response.statusText}`);
+                await response.text().then((text) => {
+                    console.error(`doFetch(): ERROR status [${response.status}] ${response.statusText}: ${text}`);
+                });
+                return null;
+            }
+        })
+        .then((jsonData) => {
+            return jsonData;
+        })
 }
 
 //
@@ -59,8 +62,8 @@ async function doFetch(
  * @param obj
  * @return boolean
  */
-export function isMinimumItemFields(obj: unknown): obj is types.minimumItemFields{
-    return(
+export function isMinimumItemFields(obj: unknown): obj is types.minimumItemFields {
+    return (
         typeof obj === 'object' &&
         obj != null &&
         'name' in obj &&
@@ -180,7 +183,7 @@ export function isTrackerItemReferenceSearchResult(
         obj != null &&
         "total" in obj &&
         "itemRefs" in obj &&
-        Array.isArray(obj.itemRefs) && obj.itemRefs.length > 0
+        Array.isArray(obj.itemRefs) // && obj.itemRefs.length > 0
     );
 }
 
@@ -199,17 +202,32 @@ export function isTrackerItemChildReference(
         "itemReference" in obj
     );
 }
+
 /**
  * Type guard for getProject() function. The expected type is ProjectReference.
  * @param obj
  * @return boolean
  */
-export function isProjectReference(
+export function isProjectReferenceArray(
     obj: unknown,
 ): obj is types.ProjectReference {
-    return (Array.isArray(obj) && obj.length > 0);
+    if (Array.isArray(obj)) {
+        return obj.every((data) => {
+            return 'id' in data && 'name' in data;
+        });
+    } else {
+        return false;
+    }
 }
 
+export function isProjectReference(obj: unknown): obj is types.ProjectReference {
+    return (
+        typeof obj === "object" &&
+        obj != null &&
+        "id" in obj &&
+        "name" in obj
+    );
+}
 //
 // C. R. U. D.  F U N C T I O N S
 //
@@ -220,14 +238,14 @@ export function isProjectReference(
  * @return Promise<any>
  */
 export async function getProjects(cb: types.cbinit) {
-  const target = cb.serverUrl + "api/v3/projects";
-  const res = await doFetch(target, cb);
-  if (isProjectReference(res)) {
-    return res;
-  } else {
-    console.error("getProjects(): type doesn't match: " + JSON.stringify(res,null,2));
-    return null;
-  }
+    const target = cb.serverUrl + "api/v3/projects";
+    const res = await doFetch(target, cb);
+    if (isProjectReferenceArray(res)) {
+        return res;
+    } else {
+        console.error("getProjects(): type doesn't match: " + JSON.stringify(res, null, 2));
+        return null;
+    }
 }
 
 /**
@@ -237,14 +255,20 @@ export async function getProjects(cb: types.cbinit) {
  * @return Promise<any>
  */
 export async function getTrackerItems(cb: types.cbinit, trackerId: number) {
-  const target = cb.serverUrl + "api/v3/trackers/" + trackerId + "/items";
-  const res = await doFetch(target, cb);
-  if (isTrackerItemReferenceSearchResult(res)) {
-    return res;
-  } else {
-    console.error("getTrackerItems(): type doesn't match: " + JSON.stringify(res,null,2));
-    return null;
-  }
+    const target = cb.serverUrl + "api/v3/trackers/" + trackerId + "/items";
+    const res = await doFetch(target, cb);
+    if (isTrackerItemReferenceSearchResult(res)) {
+        return res;
+    } else {
+        if (res != null) {
+            console.error("getTrackerItems(): returned object is not type of TrackerItemReferenceSearchResult: "
+                + JSON.stringify(res, null, 2));
+        } else {
+            console.error("getTrackerItems(): returned object is null.");
+        }
+
+        return null;
+    }
 }
 
 /**
@@ -260,75 +284,75 @@ export async function getTrackerItems(cb: types.cbinit, trackerId: number) {
  * @return Promise<any>
  */
 export async function queryItems(
-  cb: types.cbinit,
-  query: string,
-  page: number = 1,
-  pageSize: number = 100,
+    cb: types.cbinit,
+    query: string,
+    page: number = 1,
+    pageSize: number = 100,
 ) {
-  /* number of items to be returned. */
-  let total = 0;
-  /* number of items that have been read so far. */
-  let currentRead = 0;
-  /* open-api end point */
-  let target = cb.serverUrl + "api/v3/items/query?page=" + page + "&pageSize=" +
-    pageSize + "&queryString=" + encodeURI(query);
-  /* response data */
-  const res: types.TrackerItemSearchResult = {
-    total: 0,
-    page: page,
-    pageSize: pageSize,
-    items: [],
-  };
+    /* number of items to be returned. */
+    let total = 0;
+    /* number of items that have been read so far. */
+    let currentRead = 0;
+    /* open-api end point */
+    let target = cb.serverUrl + "api/v3/items/query?page=" + page + "&pageSize=" +
+        pageSize + "&queryString=" + encodeURI(query);
+    /* response data */
+    const res: types.TrackerItemSearchResult = {
+        total: 0,
+        page: page,
+        pageSize: pageSize,
+        items: [],
+    };
 
-  console.log("queryItems(): target = " + target);
-  console.log("queryItems(): query = " + query);
+    console.log("queryItems(): target = " + target);
+    console.log("queryItems(): query = " + query);
 
-  let chunk;
-  let counter = 0;
-  /* get all the chunks and aggregate them into a single response. */
-  do {
-    /* access to Codebeamer endpoint to get a query result */
-    try {
-      chunk = await doFetch(target, cb);
-    } catch (e) {
-      console.error(e);
-    }
+    let chunk;
+    let counter = 0;
+    /* get all the chunks and aggregate them into a single response. */
+    do {
+        /* access to Codebeamer endpoint to get a query result */
+        try {
+            chunk = await doFetch(target, cb);
+        } catch (e) {
+            console.error(e);
+        }
 
-    /* check if returned data pass the type guard. if false, exit. */
-    if (!isTrackerItemSearchResult(chunk)) {
-        console.error("queryItems(): type doesn't match: " + JSON.stringify(chunk,null,2));
-        break;
-    }
+        /* check if returned data pass the type guard. if false, exit. */
+        if (!isTrackerItemSearchResult(chunk)) {
+            console.error("queryItems(): type doesn't match: " + JSON.stringify(chunk, null, 2));
+            break;
+        }
 
 
-    /* check if items is an array and not null. if true, concatenate it to response data. */
-    if (chunk.items != null && Array.isArray(chunk.items)) {
-      /* check if returned data has at least one item. if false, then exit. */
-      if (chunk.items.length === 0) break;
+        /* check if items is an array and not null. if true, concatenate it to response data. */
+        if (chunk.items != null && Array.isArray(chunk.items)) {
+            /* check if returned data has at least one item. if false, then exit. */
+            if (chunk.items.length === 0) break;
 
-      /* set total and pageSIze to response value. do this only in the first occurrence. */
-      if (counter === 0) {
-        res.total = chunk.total;
-        res.pageSize = chunk.total;
+            /* set total and pageSIze to response value. do this only in the first occurrence. */
+            if (counter === 0) {
+                res.total = chunk.total;
+                res.pageSize = chunk.total;
 
-        /* check if the total is bigger than 0. if true, preserve it, otherwise exit. */
-        if ((total = chunk.total != null ? chunk.total : 0) === 0) break;
-      }
+                /* check if the total is bigger than 0. if true, preserve it, otherwise exit. */
+                if ((total = chunk.total != null ? chunk.total : 0) === 0) break;
+            }
 
-      /* concatenate the returned value with response value. */
-      if (res.items == null) res.items = [];
-      res.items = res.items.concat(chunk.items);
+            /* concatenate the returned value with response value. */
+            if (res.items == null) res.items = [];
+            res.items = res.items.concat(chunk.items);
 
-      /* calculate the number of items that have been read so far. */
-      currentRead = currentRead + chunk.items.length;
-    }
+            /* calculate the number of items that have been read so far. */
+            currentRead = currentRead + chunk.items.length;
+        }
 
-    target = cb.serverUrl + "api/v3/items/query?page=" + ++page + "&pageSize=" +
-      pageSize + "&queryString=" + encodeURI(query);
-    counter++;
-  } while (currentRead < total);
+        target = cb.serverUrl + "api/v3/items/query?page=" + ++page + "&pageSize=" +
+            pageSize + "&queryString=" + encodeURI(query);
+        counter++;
+    } while (currentRead < total);
 
-  return res;
+    return res;
 }
 
 /**
@@ -336,25 +360,24 @@ export async function queryItems(
  * @param cb cbinit.
  * @param trackerId tracker in.
  * @param item item data
-  * @return Promise<any>
+ * @return Promise<any>
  */
 export async function createItem(
-  cb: types.cbinit,
-  trackerId: number,
-  item: types.TrackerItem,
+    cb: types.cbinit,
+    trackerId: number,
+    item: types.TrackerItem,
 ) {
     const target = cb.serverUrl + "api/v3/trackers/" + trackerId + "/items";
     if (isMinimumItemFields(item)) { // check if the item has mandatory values.
-    // return await doFetch(target, cb, "POST", item);
-      const res = await doFetch(target, cb, "POST", item);
-      if (isTrackerItem(res)) {
-          return res;
-      } else {
-          console.error("createItem(): type doesn't match: " + JSON.stringify(res,null,2));
-          return null;
-      }
+        const res = await doFetch(target, cb, "POST", item);
+        if (isTrackerItem(res)) {
+            return res;
+        } else {
+            console.error("createItem(): type doesn't match: " + JSON.stringify(res, null, 2));
+            return null;
+        }
     } else {
-        console.error("createItem(): immature request body. INPUT = " + JSON.stringify(item,null,2));
+        console.error("createItem(): immature request body. INPUT = " + JSON.stringify(item, null, 2));
         return null;
     }
 }
@@ -379,11 +402,11 @@ export async function createChildItem(
         if (isTrackerItem(res)) {
             return res;
         } else {
-            console.error("createChildItem(): type doesn't match: " + JSON.stringify(res,null,2));
+            console.error("createChildItem(): type doesn't match: " + JSON.stringify(res, null, 2));
             return null;
         }
     } else {
-        console.error("createChildItem(): immature request body. INPUT = " + JSON.stringify(item,null,2));
+        console.error("createChildItem(): immature request body. INPUT = " + JSON.stringify(item, null, 2));
         return null;
     }
 }
@@ -406,12 +429,12 @@ export async function updateItem(
         if (isTrackerItem(res)) {
             return res;
         } else {
-            console.error("updateItem(): type doesn't match: " + JSON.stringify(res,null,2));
+            console.error("updateItem(): type doesn't match: " + JSON.stringify(res, null, 2));
             return null;
         }
     } else {
         console.error("updateItem(): unexpected input. expected is UpdateTrackerItemFields, but actual is "
-            + JSON.stringify(item,null,2));
+            + JSON.stringify(item, null, 2));
         return null;
     }
 }
@@ -429,7 +452,7 @@ export async function bulkUpdateItems(cb: types.cbinit, itemArray: types.UpdateT
         if (isBulkOperationResponse(res)) {
             return res;
         } else {
-            console.error("bulkUpdateItems(): type doesn't match: " + JSON.stringify(res,null,2));
+            console.error("bulkUpdateItems(): type doesn't match: " + JSON.stringify(res, null, 2));
             return null;
         }
     } else {
@@ -470,5 +493,35 @@ export async function addNewChildItem(cb: types.cbinit, parent: number, child: n
         return res;
     }
     return null;
+}
+
+export async function setBaseline(cb: types.cbinit, projectId: number) {
+    const target = cb.serverUrl + "api/v3/baselines";
+    const date = new Date();
+    const monthsWithoutLeadingZero = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    const baselineObject = {
+        name: 'cbclient '
+            + date.getFullYear()
+            + ' ' + monthsWithoutLeadingZero[date.getMonth()]
+            + ' ' + date.getDate()
+            + ', ' + date.getHours()
+            + 'h ' + date.getMinutes()
+            + 'm ' + date.getSeconds()
+            + 's',
+        project: {id: projectId}
+    }
+
+    // console.log("setBaseline(): baselineObject = " + JSON.stringify(baselineObject));
+
+    const res = await doFetch(target, cb, "POST", baselineObject);
+    if (isProjectReference(res)) {
+        if (res.id != null) {
+            return res;
+        } else {
+            console.error("setNewBaseLine(): baseline creation failed. id is null.");
+            return null;
+        }
+    }
 }
 /* end of this file */
