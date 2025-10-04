@@ -21,6 +21,7 @@ Currently, these methods listed below are implemented.
 - bulkUpdateItems(): update multiple items with the given array of data.
 - deleteItem(): delete the specified item.
 - addNewChildItem(): add a child item to the specified item.
+- setBaseline(): create new baseline for the specified project.
 
 ## Configure credentials and server URL.
 To connect to Codebeamer via open-api (aka Swagger v3), you need to be authenticated and authorized by
@@ -68,8 +69,8 @@ const cb: types.cbinit = {
 Get a list of a project.
 ```ts
 const res = await client.getProjects(cb);
-if (client.isProjectReference(res)) {
-    console.log(JSON.stringify(res, null, 2));
+if (client.isProjectReferenceArray(res)) {
+    do_something();
 }
 ```
 Get a list of tracker items in a project.
@@ -164,7 +165,13 @@ if (client.isTrackerItemChildReference(res)) {
     do_something();
 }
 ```
-
+Set baseline.
+```ts
+const res = await client.setBaseline(cb, 123456); // 123456 -> project ID.
+if (client.isProjectReference(res)) {
+    do_something();
+}
+```
 Each Codebeamer Type has a corresponding type guard function whose name is "is\<Type\>". 
 For example, a type guard for TrackerItem is 'isTrackerItem.'
 Since most of the function returns Promise\<any\>, use the corresponding type guard function
