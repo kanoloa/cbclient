@@ -495,20 +495,28 @@ export async function addNewChildItem(cb: types.cbinit, parent: number, child: n
     return null;
 }
 
-export async function setBaseline(cb: types.cbinit, projectId: number) {
+/**
+ * Create a new baseline.
+ * @param cb  cbinit
+ * @param projectId  project ID
+ * @param name  name of the baseline.  optional.
+ * @return Promise<any>
+ */
+export async function setBaseline(cb: types.cbinit, projectId: number, name?: string) {
     const target = cb.serverUrl + "api/v3/baselines";
     const date = new Date();
     const monthsWithoutLeadingZero = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-    const baselineObject = {
-        name: 'cbclient '
+    const baselineName = (name != null) ? name : "cbclient "
             + date.getFullYear()
             + ' ' + monthsWithoutLeadingZero[date.getMonth()]
             + ' ' + date.getDate()
             + ', ' + date.getHours()
             + 'h ' + date.getMinutes()
             + 'm ' + date.getSeconds()
-            + 's',
+            + 's';
+
+    const baselineObject = {
+        name: baselineName,
         project: {id: projectId}
     }
 
